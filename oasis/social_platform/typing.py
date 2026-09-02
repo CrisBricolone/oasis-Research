@@ -47,6 +47,7 @@ class ActionType(Enum):
     SEND_TO_GROUP = "send_to_group"
     CREATE_GROUP = "create_group"
     LISTEN_FROM_GROUP = "listen_from_group"
+    POST_PHOTO = "post_photo"
 
     @classmethod
     def get_default_twitter_actions(cls):
@@ -57,6 +58,7 @@ class ActionType(Enum):
             cls.FOLLOW,
             cls.DO_NOTHING,
             cls.QUOTE_POST,
+            cls.POST_PHOTO
         ]
 
     @classmethod
