@@ -133,3 +133,57 @@ class SocialEnvironment(Environment):
             posts_env=posts_env,
             groups_env=await self.get_group_env(),
         )
+
+    async def get_multimodal_posts_env(self) -> tuple[str, list]:
+        from PIL import Image
+
+        posts = await self.action.refresh()
+        image_list = []
+        if posts['succes']:
+            modified_posts = []
+            for post in posts['posts']:
+                content = post.get('content', '')
+
+                if isinstance(content, str) and content.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    try:
+                        img = Image.open(content).resize((256, 256))
+                        image_list.append(img)
+                        post['content'] = f"[Attached Image for post_id: {post.get('post_id')}]"
+                    except Exception as e:
+                        print(f"Failed to load image at {content}: {e}")
+                        post["content"] = "[Failed to load attached image]"
+                modified_posts.append(posts)
+
+            posts_env_str = json.dumps(modified_posts, indent=4)
+            posts_env = self.posts_env_template.substitute(posts=posts_env_str)
+        else:
+            posts_env = "After refreshing, there are no existing posts."
+
+        return posts_env, image_list
+
+    async def to_multimodal_prompt(
+            self,
+            include_posts: bool = True,
+            include_followers: bool = True,
+            include_follows: bool = True,
+    ) -> tuple[str, list]:
+        followers_env = (await self.get_followers_env()
+                        if include_follows else "No followers.")
+        follows_env = (await self.get_follows_env()
+                      if include_followers else "No follows.")
+
+        if include_posts:
+            posts_env, image_list = await self.get_multimodal_posts_env()
+        else:
+            posts_env = ""
+            image_list = []
+    
+        text_prompt =  self.env_template.substitute(
+            followers_env=followers_env,
+            follows_env=follows_env,
+            posts_env=posts_env,
+            groups_env=await self.get_group_env(),
+        )
+
+        return text_prompt, image_list
+

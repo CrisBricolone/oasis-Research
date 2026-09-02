@@ -58,7 +58,6 @@ class ActionType(Enum):
             cls.FOLLOW,
             cls.DO_NOTHING,
             cls.QUOTE_POST,
-            cls.POST_PHOTO
         ]
 
     @classmethod

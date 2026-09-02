@@ -124,14 +124,17 @@ class SocialAgent(ChatAgent):
 
     async def perform_action_by_llm(self):
         # Get posts:
-        env_prompt = await self.env.to_text_prompt()
+        env_prompt, img_list = await self.env.to_multimodal_prompt()
         user_msg = BaseMessage.make_user_message(
             role_name="User",
             content=(
                 f"Please perform social media actions after observing the "
                 f"platform environments. Notice that don't limit your "
                 f"actions for example to just like the posts. "
-                f"Here is your social media environment: {env_prompt}"))
+                f"Here is your social media environment: {env_prompt}"
+                ),
+            image_list = img_list if img_list else None
+            )
         try:
             agent_log.info(
                 f"Agent {self.social_agent_id} observing environment: "
@@ -325,7 +328,7 @@ class SocialAgent(ChatAgent):
 
         try: 
             image = Image.open(image_path).resize((256, 256))
-        except FileNotFoundError:
+        except Exception as e:
             print(f'Error: File could not be found at given path, {image_path}')
             return None
 
@@ -340,15 +343,12 @@ class SocialAgent(ChatAgent):
             image_list=[image]
         )
 
-        openai_messages, _ = self.memory.get_context()
-        openai_messages = openai_messages + [{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-            ]
-        }]
-
         agent_log.info(f"Agent {self.social_agent_id} processing multimodal input.")
         response = await self.astep(image_msg)
+        db_result = await self.env.action.post_photo(image_path)   
 
-        return response
+        return {
+            "user_id": self.social_agent_id,
+            "response": response,
+            "success": db_result.get("success", False)
+        }
