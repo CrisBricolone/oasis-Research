@@ -140,6 +140,9 @@ class SocialAgent(ChatAgent):
                 f"Agent {self.social_agent_id} observing environment: "
                 f"{env_prompt}")
             response = await self.astep(user_msg)
+
+            agent_log.info(f"Agent {self.social_agent_id} RAW RESPONSE: {response.msg.content}")
+
             for tool_call in response.info['tool_calls']:
                 action_name = tool_call.tool_name
                 args = tool_call.args

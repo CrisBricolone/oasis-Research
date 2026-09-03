@@ -139,7 +139,7 @@ class SocialEnvironment(Environment):
 
         posts = await self.action.refresh()
         image_list = []
-        if posts['succes']:
+        if posts['success']:
             modified_posts = []
             for post in posts['posts']:
                 content = post.get('content', '')
