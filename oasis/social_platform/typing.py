@@ -79,14 +79,34 @@ class ActionType(Enum):
             cls.MUTE,
         ]
 
+    #basic tiktok actions
+    @classmethod
+    def get_default_tiktok_action(cls):
+        return [
+            cls.CREATE_POST,
+            cls.LIKE_POST,
+            cls.CREATE_COMMENT,
+            cls.LIKE_COMMENT,
+            cls.SEARCH_POSTS,
+            cls.SEARCH_USER,
+            cls.REFRESH,
+            cls.DO_NOTHING,
+            cls.FOLLOW,
+            cls.REPOST,
+            cls.POST_PHOTO,
+            cls.POST_VIDEO
+        ]
+
 
 class RecsysType(Enum):
     TWITTER = "twitter"
     TWHIN = "twhin-bert"
     REDDIT = "reddit"
     RANDOM = "random"
+    TIKTOK = "tiktok"
 
 
 class DefaultPlatformType(Enum):
     TWITTER = "twitter"
     REDDIT = "reddit"
+    TIKTOK = "tiktok"

@@ -96,6 +96,17 @@ class OasisEnv:
                     refresh_rec_post_count=5,
                 )
                 self.platform_type = DefaultPlatformType.REDDIT
+            elif platform == DefaultPlatformType.TIKTOK:
+                self.channel = Channel()
+                self.platform = Platform(
+                    db_path=database_path,
+                    channel=self.channel,
+                    recsys_type="twhin-bert",
+                    refresh_rec_post_count=2,
+                    max_rec_post_len=2,
+                    following_post_count=3
+                )
+                self.platform_type = DefaultPlatformType.TIKTOK
             else:
                 raise ValueError(f"Invalid platform: {platform}. Only "
                                  "DefaultPlatformType.TWITTER or "
