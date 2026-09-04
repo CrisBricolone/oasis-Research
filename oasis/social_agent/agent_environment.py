@@ -139,6 +139,8 @@ class SocialEnvironment(Environment):
 
         posts = await self.action.refresh()
         image_list = []
+        video_bytes_list = []
+
         if posts['success']:
             modified_posts = []
             for post in posts['posts']:
@@ -152,14 +154,26 @@ class SocialEnvironment(Environment):
                     except Exception as e:
                         print(f"Failed to load image at {content}: {e}")
                         post["content"] = "[Failed to load attached image]"
-                modified_posts.append(posts)
+
+                elif isinstance(content, str) and content.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
+                    try:
+                        with open(content, 'rb') as file:
+                            v_bytes = file.read()
+                        video_bytes_list.append(v_bytes)
+                        post['content'] = f'[Attached Video for post_id: {post.get('post_id')}]'
+
+                    except Exception as e:
+                        print(f'Failed to load video at {content}: {e}')
+                        post['content'] = 'Failed to load attached video'
+
+                modified_posts.append(post) #adaugam tot posts ul oops
 
             posts_env_str = json.dumps(modified_posts, indent=4)
             posts_env = self.posts_env_template.substitute(posts=posts_env_str)
         else:
             posts_env = "After refreshing, there are no existing posts."
 
-        return posts_env, image_list
+        return posts_env, image_list, video_bytes_list
 
     async def to_multimodal_prompt(
             self,
@@ -173,10 +187,11 @@ class SocialEnvironment(Environment):
                       if include_followers else "No follows.")
 
         if include_posts:
-            posts_env, image_list = await self.get_multimodal_posts_env()
+            posts_env, image_list, video_bytes_list = await self.get_multimodal_posts_env()
         else:
             posts_env = ""
             image_list = []
+            video_bytes_list = []
     
         text_prompt =  self.env_template.substitute(
             followers_env=followers_env,
@@ -185,5 +200,5 @@ class SocialEnvironment(Environment):
             groups_env=await self.get_group_env(),
         )
 
-        return text_prompt, image_list
+        return text_prompt, image_list, video_bytes_list
 

@@ -124,7 +124,7 @@ class SocialAgent(ChatAgent):
 
     async def perform_action_by_llm(self):
         # Get posts:
-        env_prompt, img_list = await self.env.to_multimodal_prompt()
+        env_prompt, img_list, vid_byte_list = await self.env.to_multimodal_prompt()
         user_msg = BaseMessage.make_user_message(
             role_name="User",
             content=(
@@ -133,7 +133,8 @@ class SocialAgent(ChatAgent):
                 f"actions for example to just like the posts. "
                 f"Here is your social media environment: {env_prompt}"
                 ),
-            image_list = img_list if img_list else None
+            image_list = img_list if img_list else None,
+            video_bytes = vid_byte_list if vid_byte_list else None
             )
         try:
             agent_log.info(

@@ -14,7 +14,11 @@ async def main():
         model_type='granite3.2-vision',
         url = 'http://localhost:11434/v1',
         api_key='ollama',
-        model_config_dict={'temperature': 0.0}
+        model_config_dict={
+            'temperature': 0.0,
+            'max_tokens': 150, 
+            'timeout': 3600.0 
+        }
     )
 
     shared_model_manager = ModelManager(

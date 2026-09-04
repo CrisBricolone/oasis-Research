@@ -1655,13 +1655,42 @@ class Platform:
                 "num_dislikes, num_shares) VALUES (?, ?, ?, ?, ?, ?)")
             self.pl_utils._execute_db_command(
                 post_insert_query, (user_id, image_path, current_time, 0, 0, 0),
-                commit=True)
+                commit=True
+            )
             
             post_id = self.db_cursor.lastrowid
             action_info = {"image_path": image_path, "post_id": post_id}
             self.pl_utils._record_trace(user_id, ActionType.POST_PHOTO.value,
                                         action_info, current_time)
 
+            return {"success": True, "post_id": post_id}
+
+        except Exception as e:
+            return {'succes': False, 'error': str(e)}
+
+    async def post_video(self, agent_id: int, video_path: str):
+        if self.recsys_type == RecsysType.REDDIT:
+            current_time = self.sandbox_clock.time_transfer(
+            datetime.now(), self.start_time)
+        else:
+            current_time = self.sandbox_clock.get_time_step()
+
+        try:
+            user_id = agent_id
+            post_insert_query = (
+                'INSERT INTO post (user_id, content, created_at) VALUES (?, ?, ?)'
+            )
+
+            self.pl_utils._execute_db_command(
+                post_insert_query,
+                (user_id, video_path, current_time),  # Aici folosim user_id
+                commit=True
+            )
+
+            post_id = self.db_cursor.lastrowid
+            action_info = {"video_path": video_path}
+            self.pl_utils._record_trace(user_id, ActionType.POST_VIDEO.value,
+                                        action_info, current_time)
             return {"success": True, "post_id": post_id}
 
         except Exception as e:
