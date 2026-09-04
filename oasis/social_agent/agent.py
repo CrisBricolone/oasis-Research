@@ -134,7 +134,7 @@ class SocialAgent(ChatAgent):
                 f"Here is your social media environment: {env_prompt}"
                 ),
             image_list = img_list if img_list else None,
-            video_bytes = vid_byte_list if vid_byte_list else None
+            video_bytes = vid_byte_list[0] if vid_byte_list else None
             )
         try:
             agent_log.info(

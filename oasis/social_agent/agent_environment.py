@@ -160,7 +160,7 @@ class SocialEnvironment(Environment):
                         with open(content, 'rb') as file:
                             v_bytes = file.read()
                         video_bytes_list.append(v_bytes)
-                        post['content'] = f'[Attached Video for post_id: {post.get('post_id')}]'
+                        post['content'] = f"[Attached Video for post_id: {post.get('post_id')}]"
 
                     except Exception as e:
                         print(f'Failed to load video at {content}: {e}')

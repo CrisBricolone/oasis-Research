@@ -16,7 +16,7 @@ async def main():
         api_key='ollama',
         model_config_dict={
             'temperature': 0.0,
-            'max_tokens': 150, 
+            'max_tokens': 30, 
             'timeout': 3600.0 
         }
     )
@@ -26,7 +26,7 @@ async def main():
         scheduling_strategy='round_robin'
     )
 
-    available_actions = ActionType.get_default_twitter_actions() + [ActionType.POST_PHOTO]
+    available_actions = ActionType.get_default_twitter_actions() + [ActionType.POST_VIDEO]
     agent_graph = await generate_twitter_agent_graph(
         profile_path=("../../data/twitter_dataset/anonymous_topic_200_1h/"
                     "False_Business_0.csv"),
@@ -47,11 +47,11 @@ async def main():
 
     await env.reset()
 
-    image_path = './image.png'
+    video_path = 'creature.mp4'
     actions_1 = {}
     actions_1[env.agent_graph.get_agent(0)] = ManualAction(
-        action_type=ActionType.POST_PHOTO,
-        action_args={'image_path': image_path}
+        action_type=ActionType.POST_VIDEO,
+        action_args={'video_path': video_path}
     )
 
     await env.step(actions_1)
