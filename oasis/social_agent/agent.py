@@ -326,33 +326,3 @@ class SocialAgent(ChatAgent):
     def __str__(self) -> str:
         return (f"{self.__class__.__name__}(agent_id={self.social_agent_id}, "
                 f"model_type={self.model_type.value})")
-
-    async def perform_multimodal_action(self, image_path: str):
-        from PIL import Image
-
-        try: 
-            image = Image.open(image_path).resize((256, 256))
-        except Exception as e:
-            print(f'Error: File could not be found at given path, {image_path}')
-            return None
-
-        prompt = (
-            'Look at this image and react to it.'
-            'You can use the tools ar your disposal and are encouraged to do so'
-        )
-
-        image_msg = BaseMessage.make_user_message(
-            role_name='User',
-            content=prompt,
-            image_list=[image]
-        )
-
-        agent_log.info(f"Agent {self.social_agent_id} processing multimodal input.")
-        response = await self.astep(image_msg)
-        db_result = await self.env.action.post_photo(image_path)   
-
-        return {
-            "user_id": self.social_agent_id,
-            "response": response,
-            "success": db_result.get("success", False)
-        }

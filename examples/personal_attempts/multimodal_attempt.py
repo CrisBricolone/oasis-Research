@@ -11,14 +11,10 @@ from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_g
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='granite3.2-vision',
-        url = 'http://localhost:11434/v1',
-        api_key='ollama',
-        model_config_dict={
-            'temperature': 0.0,
-            'max_tokens': 30, 
-            'timeout': 3600.0 
-        }
+        model_type='Qwen/Qwen2-VL-2B-Instruct',
+        url = 'http://127.0.0.1:8000/v1',
+        api_key='vllm-fun',
+        model_config_dict={'temperature': 0.0}
     )
 
     shared_model_manager = ModelManager(

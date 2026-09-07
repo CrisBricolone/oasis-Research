@@ -144,10 +144,6 @@ class OasisEnv:
         async with self.llm_semaphore:
             return await agent.perform_interview(interview_prompt)
 
-    async def _perform_multimodal_action(self, agent, image_path:str):
-        async with self.llm_semaphore:
-            return await agent.perform_multimodal_action(image_path)
-
     async def step(
         self, actions: dict[SocialAgent, Union[ManualAction, LLMAction,
                                                List[Union[ManualAction,
@@ -181,9 +177,6 @@ class OasisEnv:
                             tasks.append(
                                 self._perform_interview_action(
                                     agent, interview_prompt))
-                        elif single_action.action_type == ActionType.POST_PHOTO:
-                            image_path = single_action.action_args.get('image_path', '')
-                            tasks.append(self._perform_multimodal_action(agent, image_path))
                         else:
                             tasks.append(
                                 agent.perform_action_by_data(
