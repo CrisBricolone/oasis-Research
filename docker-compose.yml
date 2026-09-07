@@ -10,7 +10,8 @@ services:
     environment:
       - VLLM_WSL2_ENABLE_PIN_MEMORY=1
     command: >
-      --model Qwen/Qwen2-VL-2B-Instruct
+      --model Qwen/Qwen2.5-7B-Instruct-AWQ
+      --quantization awq
       --gpu-memory-utilization 0.80
       --max-model-len 4096
       --enable-auto-tool-choice

@@ -106,7 +106,8 @@ def get_recsys_model(recsys_type: str = None):
         models = (twhin_tokenizer, twhin_model)
         return models
     elif (recsys_type == RecsysType.REDDIT.value
-          or recsys_type == RecsysType.RANDOM.value):
+          or recsys_type == RecsysType.RANDOM.value
+          or recsys_type == RecsysType.CHRONO.value):
         return None
     else:
         raise ValueError(f"Unknown recsys type: {recsys_type}")
@@ -131,6 +132,21 @@ def reset_globals():
     t_items = {}
     u_items = {}
     date_score = []
+
+def rec_sys_custom_chronological(post_table: List[Dict[str, Any]],
+                                 user_table: List[Dict[str, Any]],
+                                 max_rec_post_len: int = 20
+                                 ) -> List[List]:
+
+    """
+        Intoarce postarile in ordine cronologica
+    """
+    
+    sorted_posts = sorted(post_table, key=lambda x: x['created_at'], reverse = True)
+    sorted_posts_id = [post['post_id'] for post in sorted_posts][:max_rec_post_len]
+    new_rec_matrix = [sorted_posts_id for _ in user_table]
+
+    return new_rec_matrix
 
 
 def rec_sys_random(post_table: List[Dict[str, Any]], rec_matrix: List[List],

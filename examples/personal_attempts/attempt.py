@@ -10,31 +10,13 @@ from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_g
 from PIL import Image
 
 
-async def manual_image_pass(image_path: str, prompt: str = "Please look at the following image and tell me what you think about it"):
-    '''
-    Takes a local image and transforms it to Base64 pentru a putea fi interpretata de catre model
-    '''
-
-    try:
-        img = Image.open(image_path)
-    except FileNotFoundError:
-        print(f'Error: Image was not found at: {image_path}')
-
-    llm_message = BaseMessage.make_user_message(
-        role_name='User',
-        content=prompt,
-        image_list=[img]
-    )
-
-    return llm_message
-
-
-
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen/Qwen2-VL-2B-Instruct',
-        url='http://localhost:8000/v1'
+        model_type='Qwen/Qwen2.5-7B-Instruct-AWQ',
+        url = 'http://127.0.0.1:8000/v1',
+        api_key='vllm-fun',
+        model_config_dict={'temperature': 0.8}
     )
 
     shared_model_manager = ModelManager(
@@ -42,7 +24,7 @@ async def main():
         scheduling_strategy='round_robin'
     )
 
-    available_actions = ActionType.get_default_twitter_actions()
+    available_actions = ActionType.get_default_tiktok_actions()
     agent_graph = await generate_twitter_agent_graph(
         profile_path=("../../data/twitter_dataset/anonymous_topic_200_1h/"
                       "False_Business_0.csv"),
@@ -58,30 +40,36 @@ async def main():
 
     env = oasis.make(
         agent_graph=agent_graph,
-        platform=oasis.DefaultPlatformType.TWITTER,
+        platform=oasis.DefaultPlatformType.TIKTOK,
         database_path=db_path
     )
     await env.reset()
 
-    print('Distribuim o imagine catre toti agentii')
-    image_path_to_send = './image.png'
-    image_msg = await manual_image_pass(
-        image_path=image_path_to_send,
-        prompt='Please look at the following image and tell me what you think about it',
-
+    actions_1 = {}
+    actions_1[env.agent_graph.get_agent(0)] = ManualAction(
+        action_type=ActionType.CREATE_POST,
+        action_args={'content': 'Earth is Flat'}
     )
+    await env.step(actions_1)
 
-    reactii = {}
-    if image_msg:
-        all_agents = env.agent_graph.get_agents()
-        for agent_id, agent_obj in all_agents:
-            print(f'\nAgent {agent_id} analizeaza')
-            response = await agent_obj.astep(image_msg)
-            reactii[agent_id] = response.msg.content
+    actions_2 = {
+        agent: LLMAction()
+        for _, agent in env.agent_graph.get_agents([2, 3, 5, 7, 9, 11, 13, 15])
+    }
+    await env.step(actions_2)
 
-    print("\n--- REACTIILE CENTRALIZATE ALE AGENTILOR ---")
-    for aid, text in reactii.items():
-        print(f"Agent {aid} a spus: {text}\n")
+    actions_3 = {}
+    actions_3[env.agent_graph.get_agent(1)] = ManualAction(
+        action_type=ActionType.CREATE_POST,
+        action_args={'content': 'Earth is not flat!'}
+    )
+    await env.step(actions_3)
+
+    actions_4 = {
+        agent: LLMAction()
+        for _, agent in env.agent_graph.get_agents()
+    }
+    await env.step(actions_4)
     
     await env.close()
 

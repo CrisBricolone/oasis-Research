@@ -101,7 +101,7 @@ class OasisEnv:
                 self.platform = Platform(
                     db_path=database_path,
                     channel=self.channel,
-                    recsys_type="twhin-bert",
+                    recsys_type="chronological",
                     refresh_rec_post_count=2,
                     max_rec_post_len=2,
                     following_post_count=3
@@ -119,8 +119,10 @@ class OasisEnv:
             self.channel = platform.channel
             if platform.recsys_type == RecsysType.REDDIT:
                 self.platform_type = DefaultPlatformType.REDDIT
-            else:
+            elif platform.recsys_type == RecsysType.TWITTER:
                 self.platform_type = DefaultPlatformType.TWITTER
+            elif platform.recsys_type == RecsysType.CHRONO:
+                self.platform_type = DefaultPlatformType.TIKTOK
         else:
             raise ValueError(
                 f"Invalid platform: {platform}. You should pass a "
@@ -207,7 +209,7 @@ class OasisEnv:
         # Update the clock
 
         #TREBUIE STABILIT CUM FACEM CU INTERNAL CLOCK-UL
-        if self.platform_type == DefaultPlatformType.TWITTER:
+        if self.platform_type in (DefaultPlatformType.TIKTOK, DefaultPlatformType.TWITTER):
             self.platform.sandbox_clock.time_step += 1
 
     async def close(self) -> None:

@@ -104,6 +104,7 @@ class RecsysType(Enum):
     REDDIT = "reddit"
     RANDOM = "random"
     TIKTOK = "tiktok"
+    CHRONO = "chronological"
 
 
 class DefaultPlatformType(Enum):

@@ -30,7 +30,8 @@ from oasis.social_platform.database import (create_db,
 from oasis.social_platform.platform_utils import PlatformUtils
 from oasis.social_platform.recsys import (rec_sys_personalized_twh,
                                           rec_sys_personalized_with_trace,
-                                          rec_sys_random, rec_sys_reddit)
+                                          rec_sys_random, rec_sys_reddit,
+                                          rec_sys_custom_chronological)
 from oasis.social_platform.typing import ActionType, RecsysType
 
 # Create log directory if it doesn't exist
@@ -340,6 +341,10 @@ class Platform:
             new_rec_matrix = rec_sys_personalized_with_trace(
                 user_table, post_table, trace_table, rec_matrix,
                 self.max_rec_post_len)
+        elif self.recsys_type == RecsysType.CHRONO:
+            new_rec_matrix = rec_sys_custom_chronological(
+                post_table, user_table, self.max_rec_post_len
+            )
         elif self.recsys_type == RecsysType.TWHIN:
             try:
                 latest_post_time = post_table[-1]["created_at"]
