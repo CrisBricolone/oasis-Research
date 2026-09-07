@@ -212,6 +212,8 @@ class OasisEnv:
         env_log.info("performed all actions.")
         # # Control some agents to perform actions
         # Update the clock
+
+        #TREBUIE STABILIT CUM FACEM CU INTERNAL CLOCK-UL
         if self.platform_type == DefaultPlatformType.TWITTER:
             self.platform.sandbox_clock.time_step += 1
 

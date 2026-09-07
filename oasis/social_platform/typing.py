@@ -81,7 +81,7 @@ class ActionType(Enum):
 
     #basic tiktok actions
     @classmethod
-    def get_default_tiktok_action(cls):
+    def get_default_tiktok_actions(cls):
         return [
             cls.CREATE_POST,
             cls.LIKE_POST,

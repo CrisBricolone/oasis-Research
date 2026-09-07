@@ -26,7 +26,7 @@ async def main():
         scheduling_strategy='round_robin'
     )
 
-    available_actions = ActionType.get_default_twitter_actions() + [ActionType.POST_VIDEO]
+    available_actions = ActionType.get_default_tiktok_actions()
     agent_graph = await generate_twitter_agent_graph(
         profile_path=("../../data/twitter_dataset/anonymous_topic_200_1h/"
                     "False_Business_0.csv"),
@@ -41,17 +41,18 @@ async def main():
 
     env = oasis.make(
         agent_graph=agent_graph,
-        platform=oasis.DefaultPlatformType.TWITTER,
+        platform=oasis.DefaultPlatformType.TIKTOK,
         database_path = db_path
     )
 
     await env.reset()
 
-    video_path = 'creature.mp4'
+    #video_path = './creature.mp4'
+    image_path = './image.png'
     actions_1 = {}
     actions_1[env.agent_graph.get_agent(0)] = ManualAction(
-        action_type=ActionType.POST_VIDEO,
-        action_args={'video_path': video_path}
+        action_type=ActionType.POST_PHOTO,
+        action_args={'image_path': image_path}
     )
 
     await env.step(actions_1)
