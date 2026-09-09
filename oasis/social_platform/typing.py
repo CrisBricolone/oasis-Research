@@ -49,6 +49,7 @@ class ActionType(Enum):
     LISTEN_FROM_GROUP = "listen_from_group"
     POST_PHOTO = "post_photo"
     POST_VIDEO = "post_video"
+    POST_SOUND = "post_sound"
 
     @classmethod
     def get_default_twitter_actions(cls):
@@ -94,7 +95,8 @@ class ActionType(Enum):
             cls.FOLLOW,
             cls.REPOST,
             cls.POST_PHOTO,
-            cls.POST_VIDEO
+            cls.POST_VIDEO,
+            cls.POST_SOUND
         ]
 
 

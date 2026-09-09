@@ -140,6 +140,7 @@ class SocialEnvironment(Environment):
         posts = await self.action.refresh()
         image_list = []
         video_bytes_list = []
+        audio_tensor_list = []
 
         if posts['success']:
             modified_posts = []
@@ -166,7 +167,43 @@ class SocialEnvironment(Environment):
                         print(f'Failed to load video at {content}: {e}')
                         post['content'] = 'Failed to load attached video'
 
+                elif isinstance(content,str) and content.lower().endswith(('.wav', '.mp3', '.flac')):
+                    try:
+                        import torch
+                        import torchaudio
+                        import torchaudio.transforms as audioT
+
+                        device = torch.accelerator.current_accelerator().type() if torch.accelerator.is_available() else 'cpu'
+
+                        waveform, sample_rate = torchaudio.load(content)
+                        waveform = waveform.to(device)
+
+                        target_sample_rate = 16000
+                        if(sample_rate != target_sample_rate):
+                            resampler = audioT.Resample(orig_freq=sample_rate, new_freq=target_sample_rate).to(device)
+                            waveform = resampler(waveform)
+
+                        mel_transform = audioT.MelSpectrogram(
+                            sample_rate=target_sample_rate,
+                            n_mels=80,
+                            n_fft=400,
+                            hop_length=160
+                        ).to(device)
+
+                        spectogram = mel_transform(waveform)
+                        amplitude_to_DB = audioT.AmplitudeToDB().to(device)
+                        log_spectogram = amplitude_to_DB(spectogram)
+
+                        audio_tensor_list.append(log_spectogram)
+                        post['content'] = f"[Attached Audio for post_id: {post.get('post_id')}]"
+
+                    except Exception as e:
+                        print(f'Failed to load audio at {content}: {e}')
+                        post['content'] = 'Failed to load attached audio'
+
                 modified_posts.append(post) #adaugam tot posts ul oops
+
+
 
             posts_env_str = json.dumps(modified_posts, indent=4)
             posts_env = self.posts_env_template.substitute(posts=posts_env_str)

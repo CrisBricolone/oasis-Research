@@ -58,7 +58,8 @@ class SocialAction:
                 self.create_group,
                 self.listen_from_group,
                 self.post_photo,
-                self.post_video
+                self.post_video,
+                self.post_sound
             ]
         ]
 
@@ -764,3 +765,6 @@ class SocialAction:
 
     async def post_video(self, video_path: str):
         return await self.perform_action(video_path, ActionType.POST_VIDEO.value)
+
+    async def post_sound(self, sound_path:str):
+        return await self.perform_action(sound_path, ActionType.POST_SOUND.value)
