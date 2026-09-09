@@ -11,7 +11,7 @@ from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_g
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen/Qwen2-VL-2B-Instruct',
+        model_type='fixie-ai/ultravox-v0_5-llama-3_2-1b',
         url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.0}
@@ -44,11 +44,12 @@ async def main():
     await env.reset()
 
     #video_path = './creature.mp4'
-    image_path = './image.png'
+    #image_path = './image.png'
+    audio_path = './sound.wav'
     actions_1 = {}
     actions_1[env.agent_graph.get_agent(0)] = ManualAction(
-        action_type=ActionType.POST_PHOTO,
-        action_args={'image_path': image_path}
+        action_type=ActionType.POST_SOUND,
+        action_args={'audio_path': audio_path}
     )
 
     await env.step(actions_1)

@@ -1700,3 +1700,33 @@ class Platform:
 
         except Exception as e:
             return {'succes': False, 'error': str(e)}
+
+
+    async def post_sound(self, agent_id: int, audio_path: str):
+        if self.recsys_type == RecsysType.REDDIT:
+            current_time = self.sandbox_clock.time_transfer(
+            datetime.now(), self.start_time)
+        else:
+            current_time = self.sandbox_clock.get_time_step()
+
+        try:
+            user_id = agent_id
+            post_insert_query = (
+                'INSERT INTO post (user_id, content, created_at) VALUES (?, ?, ?)'
+            )
+
+            self.pl_utils._execute_db_command(
+                post_insert_query,
+                (user_id, audio_path, current_time), 
+                commit=True
+            )
+
+            post_id = self.db_cursor.lastrowid
+            action_info = {"audio_path": audio_path}
+            self.pl_utils._record_trace(user_id, ActionType.POST_AUDIO.value,
+                                        action_info, current_time)
+
+            return {'succes': True, 'post_id': post_id}
+
+        except Exception as e:
+            return {'succes': False, 'error': str(e)}
