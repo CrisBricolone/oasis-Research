@@ -101,7 +101,7 @@ class OasisEnv:
                 self.platform = Platform(
                     db_path=database_path,
                     channel=self.channel,
-                    recsys_type="chronological",
+                    recsys_type="gorse",
                     refresh_rec_post_count=2,
                     max_rec_post_len=2,
                     following_post_count=3
@@ -121,7 +121,7 @@ class OasisEnv:
                 self.platform_type = DefaultPlatformType.REDDIT
             elif platform.recsys_type == RecsysType.TWITTER:
                 self.platform_type = DefaultPlatformType.TWITTER
-            elif platform.recsys_type == RecsysType.CHRONO:
+            elif platform.recsys_type == RecsysType.CHRONO or platform.recsys_type == RecsysType.GORSE:
                 self.platform_type = DefaultPlatformType.TIKTOK
         else:
             raise ValueError(

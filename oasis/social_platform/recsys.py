@@ -133,6 +133,40 @@ def reset_globals():
     u_items = {}
     date_score = []
 
+from gorse import AsyncGorse
+import asyncio
+#foarte questionable aici daca ar trb sa fie async
+async def rec_sys_gorse(post_table: List[Dict[str, Any]],
+                  user_table: List[Dict[str, Any]],
+                  gorse_client: AsyncGorse,
+                  max_rec_post_len: int = 20
+                  ) -> List[List[int]]:
+
+    new_rec_matrix = []
+
+    #introducem bucata asta de cod pentru cazul in care suntem la prima rulare:
+    sorted_posts = sorted(post_table, key=lambda x: x['created_at'], reverse = True)
+    fallback_posts = [post['post_id'] for post in sorted_posts][:max_rec_post_len]
+
+    if not gorse_client:
+        return [fallback_posts for _ in user_table]
+
+    async def fetch_for_user(user_id):
+        try:
+            gorse_recs = gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
+            if gorse_recs:
+                return [int(item) for item in gorse_recs]
+        except Exception as e:
+            print(f'Gorse Recsys Error: {e}')
+
+        return fallback_posts
+
+    tasks = [fetch_for_user(user['user_id']) for user in user_table]
+    new_rec_matrix = await asyncio.gather(*tasks)
+
+    return list(new_rec_matrix)
+
+
 def rec_sys_custom_chronological(post_table: List[Dict[str, Any]],
                                  user_table: List[Dict[str, Any]],
                                  max_rec_post_len: int = 20

@@ -31,7 +31,8 @@ from oasis.social_platform.platform_utils import PlatformUtils
 from oasis.social_platform.recsys import (rec_sys_personalized_twh,
                                           rec_sys_personalized_with_trace,
                                           rec_sys_random, rec_sys_reddit,
-                                          rec_sys_custom_chronological)
+                                          rec_sys_custom_chronological,
+                                          rec_sys_gorse)
 from oasis.social_platform.typing import ActionType, RecsysType
 
 # Create log directory if it doesn't exist
@@ -87,6 +88,11 @@ class Platform:
         self.channel = channel or Channel()
 
         self.recsys_type = RecsysType(recsys_type)
+        if self.recsys_type == RecsysType.GORSE:
+            from gorse import AsyncGorse
+            self.gorse_client = AsyncGorse('http://127.0.0.1:8088', '')
+        else:
+            self.gorse_client = None
 
         # Whether to simulate showing scores like Reddit (likes minus dislikes)
         # instead of showing likes and dislikes separately
@@ -125,6 +131,10 @@ class Platform:
             self.recsys_type,
             self.report_threshold,
         )
+
+    async def get_gorse_time(start_time, time_step: int):
+        current_time = start_time + timedelta(minutes=time_step)
+        return current_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     async def running(self):
         while True:
@@ -169,6 +179,32 @@ class Platform:
 
                 # Call the function with the parameters
                 result = await action_function(**params)
+
+                if self.recsys_type == RecsysType.GORSE and self.gorse_client and result.get('succes'):
+                    try:
+                        current_time = self.sandbox_clock.get_time_step()
+                        gorse_time = self.get_gorse_time(self.start_time, current_time)
+
+                        if action == ActionType.SIGNUP:
+                            await self.gorse_client.insert_item({'UserId': str(result['user_id'])})
+                        elif action in (ActionType.CREATE_POST, ActionType.POST_VIDEO, ActionType.POST_PHOTO, ActionType.POST_SOUND,
+                                        ActionType.CREATE_COMMENT, ActionType.REFRESH):
+                            await self.gorse_client.insert_item({
+                                'ItemId': str(result['post_id']),
+                                'Timestamp': gorse_time,
+                                'Labels': [action.value] 
+                            })
+                        elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
+                            target_item_id = message[0] if isinstance(message, tuple) else message
+                            await self.gorse_client.insert_feedback({
+                                'FeedbackType': action.value,
+                                'UserId': str(agent_id),
+                                'ItemId': str(target_item_id),
+                                'Timestamp': gorse_time
+                            })
+                    except Exception as e:
+                        print(f'[Gorse error]: {e}')
+                
                 await self.channel.send_to((message_id, agent_id, result))
             else:
                 raise ValueError(f"Action {action} is not supported")
@@ -344,6 +380,10 @@ class Platform:
         elif self.recsys_type == RecsysType.CHRONO:
             new_rec_matrix = rec_sys_custom_chronological(
                 post_table, user_table, self.max_rec_post_len
+            )
+        elif self.recsys_type == RecsysType.GORSE:
+            new_rec_matrix = rec_sys_gorse(
+                post_table, user_table, self.gorse_client
             )
         elif self.recsys_type == RecsysType.TWHIN:
             try:
