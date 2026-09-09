@@ -13,7 +13,7 @@ from PIL import Image
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen/Qwen2.5-7B-Instruct-AWQ',
+        model_type='casperhansen/llama-3-8b-instruct-awq',
         url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.8}
@@ -52,24 +52,18 @@ async def main():
     )
     await env.step(actions_1)
 
-    actions_2 = {
-        agent: LLMAction()
-        for _, agent in env.agent_graph.get_agents([2, 3, 5, 7, 9, 11, 13, 15])
-    }
-    await env.step(actions_2)
-
-    actions_3 = {}
-    actions_3[env.agent_graph.get_agent(1)] = ManualAction(
+    actions_2 = {}
+    actions_2[env.agent_graph.get_agent(1)] = ManualAction(
         action_type=ActionType.CREATE_POST,
         action_args={'content': 'Earth is not flat!'}
     )
-    await env.step(actions_3)
+    await env.step(actions_2)
 
-    actions_4 = {
+    actions_3 = {
         agent: LLMAction()
         for _, agent in env.agent_graph.get_agents()
     }
-    await env.step(actions_4)
+    await env.step(actions_3)
     
     await env.close()
 

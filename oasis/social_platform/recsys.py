@@ -153,7 +153,7 @@ async def rec_sys_gorse(post_table: List[Dict[str, Any]],
 
     async def fetch_for_user(user_id):
         try:
-            gorse_recs = gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
+            gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
             if gorse_recs:
                 return [int(item) for item in gorse_recs]
         except Exception as e:

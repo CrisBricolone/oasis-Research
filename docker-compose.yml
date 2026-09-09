@@ -10,7 +10,8 @@ services:
     environment:
       - VLLM_WSL2_ENABLE_PIN_MEMORY=1
     command: >
-      --model fixie-ai/ultravox-v0_5-llama-3_2-1b
+      --model casperhansen/llama-3-8b-instruct-awq
+      --quantization awq
       --gpu-memory-utilization 0.85
       --max-model-len 4096
       --enable-auto-tool-choice

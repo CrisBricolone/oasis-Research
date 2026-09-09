@@ -196,7 +196,7 @@ class Platform:
                             })
                         elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
                             target_item_id = message[0] if isinstance(message, tuple) else message
-                            await self.gorse_client.insert_feedback({
+                            await self.gorse_client.insert_feedbacks({
                                 'FeedbackType': action.value,
                                 'UserId': str(agent_id),
                                 'ItemId': str(target_item_id),
@@ -382,7 +382,7 @@ class Platform:
                 post_table, user_table, self.max_rec_post_len
             )
         elif self.recsys_type == RecsysType.GORSE:
-            new_rec_matrix = rec_sys_gorse(
+            new_rec_matrix = await rec_sys_gorse(
                 post_table, user_table, self.gorse_client
             )
         elif self.recsys_type == RecsysType.TWHIN:
