@@ -132,8 +132,8 @@ class Platform:
             self.report_threshold,
         )
 
-    async def get_gorse_time(start_time, time_step: int):
-        current_time = start_time + timedelta(minutes=time_step)
+    def get_gorse_time(self, start_time, time_step: int):
+        current_time = start_time + timedelta(minutes=int(time_step))
         return current_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     async def running(self):
@@ -180,15 +180,14 @@ class Platform:
                 # Call the function with the parameters
                 result = await action_function(**params)
 
-                if self.recsys_type == RecsysType.GORSE and self.gorse_client and result.get('succes'):
+                if self.recsys_type == RecsysType.GORSE and self.gorse_client and result.get('success'):
                     try:
                         current_time = self.sandbox_clock.get_time_step()
                         gorse_time = self.get_gorse_time(self.start_time, current_time)
 
                         if action == ActionType.SIGNUP:
-                            await self.gorse_client.insert_item({'UserId': str(result['user_id'])})
-                        elif action in (ActionType.CREATE_POST, ActionType.POST_VIDEO, ActionType.POST_PHOTO, ActionType.POST_SOUND,
-                                        ActionType.CREATE_COMMENT, ActionType.REFRESH):
+                            await self.gorse_client.insert_user({'UserId': str(result['user_id'])})
+                        elif action in (ActionType.CREATE_POST, ActionType.POST_VIDEO, ActionType.POST_PHOTO, ActionType.POST_SOUND):
                             await self.gorse_client.insert_item({
                                 'ItemId': str(result['post_id']),
                                 'Timestamp': gorse_time,
@@ -196,12 +195,12 @@ class Platform:
                             })
                         elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
                             target_item_id = message[0] if isinstance(message, tuple) else message
-                            await self.gorse_client.insert_feedbacks({
+                            await self.gorse_client.insert_feedbacks([{
                                 'FeedbackType': action.value,
                                 'UserId': str(agent_id),
                                 'ItemId': str(target_item_id),
                                 'Timestamp': gorse_time
-                            })
+                            }])
                     except Exception as e:
                         print(f'[Gorse error]: {e}')
                 

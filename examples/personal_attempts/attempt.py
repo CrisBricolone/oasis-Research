@@ -13,7 +13,7 @@ from PIL import Image
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='casperhansen/llama-3-8b-instruct-awq',
+        model_type='Qwen/Qwen3.5-2B',
         url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.8}
@@ -60,10 +60,15 @@ async def main():
     await env.step(actions_2)
 
     actions_3 = {
-        agent: LLMAction()
-        for _, agent in env.agent_graph.get_agents()
-    }
+            agent: LLMAction()
+            # Activate 5 agents with id 1, 3, 5, 7, 9
+            for _, agent in env.agent_graph.get_agents([2, 3, 5, 7, 9])
+        }
     await env.step(actions_3)
+
+    await env.step(actions_3)
+
+    await env.step({})
     
     await env.close()
 

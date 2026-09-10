@@ -155,7 +155,7 @@ async def rec_sys_gorse(post_table: List[Dict[str, Any]],
         try:
             gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
             if gorse_recs:
-                return [int(item) for item in gorse_recs]
+                return [int(item.id) for item in gorse_recs]
         except Exception as e:
             print(f'Gorse Recsys Error: {e}')
 
