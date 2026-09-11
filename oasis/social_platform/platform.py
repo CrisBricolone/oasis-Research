@@ -194,13 +194,26 @@ class Platform:
                                 'Labels': [action.value] 
                             })
                         elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
+                            print(f"\n[DEBUG 1] -> Am intrat la Feedback! Acțiune: {action.value}")
+                            print(f"[DEBUG 2] -> Mesajul primit: {message}")
                             target_item_id = message[0] if isinstance(message, tuple) else message
-                            await self.gorse_client.insert_feedbacks([{
-                                'FeedbackType': action.value,
-                                'UserId': str(agent_id),
-                                'ItemId': str(target_item_id),
-                                'Timestamp': gorse_time
-                            }])
+                            print(f"[DEBUG 3] -> Item extras: {target_item_id}")
+
+                            gorse_fb_type = "like"  
+                            if action == ActionType.DISLIKE_POST:
+                                gorse_fb_type = "dislike" 
+                            elif action == ActionType.REPOST:
+                                gorse_fb_type = "share"
+                            
+                            if target_item_id is not None:
+                                print(f"[DEBUG 4] -> PUSH LA GORSE: tip={gorse_fb_type}, user={agent_id}, item={target_item_id}, time={gorse_time}")
+                                response = await self.gorse_client.insert_feedback({
+                                    'FeedbackType': gorse_fb_type,
+                                    'UserId': str(agent_id),
+                                    'ItemId': str(target_item_id),
+                                    'Timestamp': gorse_time
+                                })
+                                print(f"[DEBUG 5] -> GORSE A RĂSPUNS: {response}\n")
                     except Exception as e:
                         print(f'[Gorse error]: {e}')
                 

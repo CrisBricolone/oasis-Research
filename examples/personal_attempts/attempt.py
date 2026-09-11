@@ -62,7 +62,7 @@ async def main():
     actions_3 = {
             agent: LLMAction()
             # Activate 5 agents with id 1, 3, 5, 7, 9
-            for _, agent in env.agent_graph.get_agents([2, 3, 5, 7, 9])
+            for _, agent in env.agent_graph.get_agents([2, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21])
         }
     await env.step(actions_3)
 
