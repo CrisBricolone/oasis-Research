@@ -30,7 +30,9 @@ from oasis.social_platform.database import (create_db,
 from oasis.social_platform.platform_utils import PlatformUtils
 from oasis.social_platform.recsys import (rec_sys_personalized_twh,
                                           rec_sys_personalized_with_trace,
-                                          rec_sys_random, rec_sys_reddit)
+                                          rec_sys_random, rec_sys_reddit,
+                                          rec_sys_custom_chronological,
+                                          rec_sys_gorse)
 from oasis.social_platform.typing import ActionType, RecsysType
 
 # Create log directory if it doesn't exist
@@ -86,6 +88,11 @@ class Platform:
         self.channel = channel or Channel()
 
         self.recsys_type = RecsysType(recsys_type)
+        if self.recsys_type == RecsysType.GORSE:
+            from gorse import AsyncGorse
+            self.gorse_client = AsyncGorse('http://127.0.0.1:8088', '')
+        else:
+            self.gorse_client = None
 
         # Whether to simulate showing scores like Reddit (likes minus dislikes)
         # instead of showing likes and dislikes separately
@@ -124,6 +131,10 @@ class Platform:
             self.recsys_type,
             self.report_threshold,
         )
+
+    def get_gorse_time(self, start_time, time_step: int):
+        current_time = start_time + timedelta(minutes=int(time_step))
+        return current_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     async def running(self):
         while True:
@@ -168,6 +179,44 @@ class Platform:
 
                 # Call the function with the parameters
                 result = await action_function(**params)
+
+                if self.recsys_type == RecsysType.GORSE and self.gorse_client and result.get('success'):
+                    try:
+                        current_time = self.sandbox_clock.get_time_step()
+                        gorse_time = self.get_gorse_time(self.start_time, current_time)
+
+                        if action == ActionType.SIGNUP:
+                            await self.gorse_client.insert_user({'UserId': str(result['user_id'])})
+                        elif action in (ActionType.CREATE_POST, ActionType.POST_VIDEO, ActionType.POST_PHOTO, ActionType.POST_SOUND):
+                            await self.gorse_client.insert_item({
+                                'ItemId': str(result['post_id']),
+                                'Timestamp': gorse_time,
+                                'Labels': [action.value] 
+                            })
+                        elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
+                            print(f"\n[DEBUG 1] -> Am intrat la Feedback! Acțiune: {action.value}")
+                            print(f"[DEBUG 2] -> Mesajul primit: {message}")
+                            target_item_id = message[0] if isinstance(message, tuple) else message
+                            print(f"[DEBUG 3] -> Item extras: {target_item_id}")
+
+                            gorse_fb_type = "like"  
+                            if action == ActionType.DISLIKE_POST:
+                                gorse_fb_type = "dislike" 
+                            elif action == ActionType.REPOST:
+                                gorse_fb_type = "share"
+                            
+                            if target_item_id is not None:
+                                print(f"[DEBUG 4] -> PUSH LA GORSE: tip={gorse_fb_type}, user={agent_id}, item={target_item_id}, time={gorse_time}")
+                                response = await self.gorse_client.insert_feedback({
+                                    'FeedbackType': gorse_fb_type,
+                                    'UserId': str(agent_id),
+                                    'ItemId': str(target_item_id),
+                                    'Timestamp': gorse_time
+                                })
+                                print(f"[DEBUG 5] -> GORSE A RĂSPUNS: {response}\n")
+                    except Exception as e:
+                        print(f'[Gorse error]: {e}')
+                
                 await self.channel.send_to((message_id, agent_id, result))
             else:
                 raise ValueError(f"Action {action} is not supported")
@@ -340,6 +389,14 @@ class Platform:
             new_rec_matrix = rec_sys_personalized_with_trace(
                 user_table, post_table, trace_table, rec_matrix,
                 self.max_rec_post_len)
+        elif self.recsys_type == RecsysType.CHRONO:
+            new_rec_matrix = rec_sys_custom_chronological(
+                post_table, user_table, self.max_rec_post_len
+            )
+        elif self.recsys_type == RecsysType.GORSE:
+            new_rec_matrix = await rec_sys_gorse(
+                post_table, user_table, self.gorse_client
+            )
         elif self.recsys_type == RecsysType.TWHIN:
             try:
                 latest_post_time = post_table[-1]["created_at"]
@@ -1640,3 +1697,88 @@ class Platform:
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    async def post_photo(self, agent_id:int, image_path:str):
+        if self.recsys_type == RecsysType.REDDIT:
+            current_time = self.sandbox_clock.time_transfer(
+                datetime.now(), self.start_time)
+        else:
+            current_time = self.sandbox_clock.get_time_step()
+
+        try:
+            user_id = agent_id
+            post_insert_query = (
+                "INSERT INTO post (user_id, content, created_at, num_likes, "
+                "num_dislikes, num_shares) VALUES (?, ?, ?, ?, ?, ?)")
+            self.pl_utils._execute_db_command(
+                post_insert_query, (user_id, image_path, current_time, 0, 0, 0),
+                commit=True
+            )
+            
+            post_id = self.db_cursor.lastrowid
+            action_info = {"image_path": image_path, "post_id": post_id}
+            self.pl_utils._record_trace(user_id, ActionType.POST_PHOTO.value,
+                                        action_info, current_time)
+
+            return {"success": True, "post_id": post_id}
+
+        except Exception as e:
+            return {'succes': False, 'error': str(e)}
+
+    async def post_video(self, agent_id: int, video_path: str):
+        if self.recsys_type == RecsysType.REDDIT:
+            current_time = self.sandbox_clock.time_transfer(
+            datetime.now(), self.start_time)
+        else:
+            current_time = self.sandbox_clock.get_time_step()
+
+        try:
+            user_id = agent_id
+            post_insert_query = (
+                'INSERT INTO post (user_id, content, created_at) VALUES (?, ?, ?)'
+            )
+
+            self.pl_utils._execute_db_command(
+                post_insert_query,
+                (user_id, video_path, current_time),  # Aici folosim user_id
+                commit=True
+            )
+
+            post_id = self.db_cursor.lastrowid
+            action_info = {"video_path": video_path}
+            self.pl_utils._record_trace(user_id, ActionType.POST_VIDEO.value,
+                                        action_info, current_time)
+            return {"success": True, "post_id": post_id}
+
+        except Exception as e:
+            return {'succes': False, 'error': str(e)}
+
+
+    async def post_sound(self, agent_id: int, audio_path: str):
+        if self.recsys_type == RecsysType.REDDIT:
+            current_time = self.sandbox_clock.time_transfer(
+            datetime.now(), self.start_time)
+        else:
+            current_time = self.sandbox_clock.get_time_step()
+
+        try:
+            user_id = agent_id
+            post_insert_query = (
+                'INSERT INTO post (user_id, content, created_at) VALUES (?, ?, ?)'
+            )
+
+            self.pl_utils._execute_db_command(
+                post_insert_query,
+                (user_id, audio_path, current_time), 
+                commit=True
+            )
+
+            post_id = self.db_cursor.lastrowid
+            action_info = {"audio_path": audio_path}
+            self.pl_utils._record_trace(user_id, ActionType.POST_AUDIO.value,
+                                        action_info, current_time)
+
+            return {'succes': True, 'post_id': post_id}
+
+        except Exception as e:
+            return {'succes': False, 'error': str(e)}

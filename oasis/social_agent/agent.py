@@ -124,19 +124,26 @@ class SocialAgent(ChatAgent):
 
     async def perform_action_by_llm(self):
         # Get posts:
-        env_prompt = await self.env.to_text_prompt()
+        env_prompt, img_list, vid_byte_list = await self.env.to_multimodal_prompt()
         user_msg = BaseMessage.make_user_message(
             role_name="User",
             content=(
                 f"Please perform social media actions after observing the "
                 f"platform environments. Notice that don't limit your "
                 f"actions for example to just like the posts. "
-                f"Here is your social media environment: {env_prompt}"))
+                f"Here is your social media environment: {env_prompt}"
+                ),
+            image_list = img_list if img_list else None,
+            video_bytes = vid_byte_list[0] if vid_byte_list else None,
+            )
         try:
             agent_log.info(
                 f"Agent {self.social_agent_id} observing environment: "
                 f"{env_prompt}")
             response = await self.astep(user_msg)
+
+            agent_log.info(f"Agent {self.social_agent_id} RAW RESPONSE: {response.msg.content}")
+
             for tool_call in response.info['tool_calls']:
                 action_name = tool_call.tool_name
                 args = tool_call.args

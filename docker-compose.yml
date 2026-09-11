@@ -1,0 +1,25 @@
+services:
+  qwen-model:
+    image: vllm/vllm-openai:latest
+    container_name: server-qwen
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ipc: host
+    environment:
+      - VLLM_WSL2_ENABLE_PIN_MEMORY=1
+    command: >
+      --model Qwen/Qwen3.5-2B
+      --gpu-memory-utilization 0.85
+      --max-model-len 4096
+      --enable-auto-tool-choice
+      --tool-call-parser hermes
+      --enforce-eager
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
