@@ -19,7 +19,7 @@ import os
 import random
 import sqlite3
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from oasis.clock.clock import Clock
@@ -134,7 +134,8 @@ class Platform:
 
     def get_gorse_time(self, start_time, time_step: int):
         current_time = start_time + timedelta(minutes=int(time_step))
-        return current_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+        utc_time = current_time.astimezone(timezone.utc)
+        return utc_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     async def running(self):
         while True:
@@ -191,7 +192,7 @@ class Platform:
                             await self.gorse_client.insert_item({
                                 'ItemId': str(result['post_id']),
                                 'Timestamp': gorse_time,
-                                'Labels': [action.value] 
+                                'Labels': [str(action.value)] 
                             })
                         elif action in (ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.REPOST):
                             print(f"\n[DEBUG 1] -> Am intrat la Feedback! Acțiune: {action.value}")
@@ -207,12 +208,12 @@ class Platform:
                             
                             if target_item_id is not None:
                                 print(f"[DEBUG 4] -> PUSH LA GORSE: tip={gorse_fb_type}, user={agent_id}, item={target_item_id}, time={gorse_time}")
-                                response = await self.gorse_client.insert_feedback({
+                                response = await self.gorse_client.insert_feedbacks([{
                                     'FeedbackType': gorse_fb_type,
                                     'UserId': str(agent_id),
                                     'ItemId': str(target_item_id),
                                     'Timestamp': gorse_time
-                                })
+                                }])
                                 print(f"[DEBUG 5] -> GORSE A RĂSPUNS: {response}\n")
                     except Exception as e:
                         print(f'[Gorse error]: {e}')

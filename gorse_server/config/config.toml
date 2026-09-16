@@ -211,7 +211,7 @@ name = "neighbors"
 type = "embedding"
 
 # The column of the item embeddings. Leave blank if type is "users".
-column = "item.Labels.embedding"
+#column = "item.Labels.embedding"
 
 [[recommend.user-to-user]]
 
