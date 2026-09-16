@@ -133,3 +133,137 @@ class SocialEnvironment(Environment):
             posts_env=posts_env,
             groups_env=await self.get_group_env(),
         )
+
+    async def get_multimodal_posts_env(self) -> tuple[str, list]:
+        from PIL import Image
+
+        posts = await self.action.refresh()
+        image_list = []
+        video_bytes_list = []
+        audio_tensor_list = []
+
+        if posts['success']:
+            modified_posts = []
+            for post in posts['posts']:
+                content = post.get('content', '')
+
+                if isinstance(content, str) and content.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    try:
+                        img = Image.open(content).resize((256, 256))
+                        image_list.append(img)
+                        post['content'] = f"[Attached Image for post_id: {post.get('post_id')}]"
+                    except Exception as e:
+                        print(f"Failed to load image at {content}: {e}")
+                        post["content"] = "[Failed to load attached image]"
+
+                elif isinstance(content, str) and content.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
+                    try:
+                        with open(content, 'rb') as file:
+                            v_bytes = file.read()
+                        video_bytes_list.append(v_bytes)
+                        post['content'] = f"[Attached Video for post_id: {post.get('post_id')}]"
+
+                    except Exception as e:
+                        print(f'Failed to load video at {content}: {e}')
+                        post['content'] = 'Failed to load attached video'
+
+                elif isinstance(content,str) and content.lower().endswith(('.wav', '.mp3', '.flac')):
+                    # try:
+                    #     import torch
+                    #     import torchaudio
+                    #     import torchaudio.transforms as audioT
+
+                    #     device = torch.accelerator.current_accelerator().type() if torch.accelerator.is_available() else 'cpu'
+
+                    #     waveform, sample_rate = torchaudio.load(content)
+                    #     waveform = waveform.to(device)
+
+                    #     target_sample_rate = 16000
+                    #     if(sample_rate != target_sample_rate):
+                    #         resampler = audioT.Resample(orig_freq=sample_rate, new_freq=target_sample_rate).to(device)
+                    #         waveform = resampler(waveform)
+
+                    #     mel_transform = audioT.MelSpectrogram(
+                    #         sample_rate=target_sample_rate,
+                    #         n_mels=80,
+                    #         n_fft=400,
+                    #         hop_length=160
+                    #     ).to(device)
+
+                    #     spectogram = mel_transform(waveform)
+                    #     amplitude_to_DB = audioT.AmplitudeToDB().to(device)
+                    #     log_spectogram = amplitude_to_DB(spectogram)
+
+                    #     audio_tensor_list.append(log_spectogram)
+                    #     post['content'] = f"[Attached Audio for post_id: {post.get('post_id')}]"
+
+                    # except Exception as e:
+                    #     print(f'Failed to load audio at {content}: {e}')
+                    #     post['content'] = 'Failed to load attached audio'
+                    import subprocess
+                    import os
+                    temp_video_path = f"{content}_temp.mp4"
+                    try:
+                        
+                        command = [
+                            'ffmpeg', '-y', 
+                            '-f', 'lavfi', '-i', 'color=c=black:s=256x256:r=1', 
+                            '-i', content, 
+                            '-c:v', 'libx264', '-c:a', 'aac', 
+                            '-shortest', 
+                            temp_video_path
+                        ]
+                        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+                        with open(temp_video_path, 'rb') as file:
+                            fake_video_bytes = file.read()
+                            
+                        video_bytes_list.append(fake_video_bytes)
+                        post['content'] = f"[Attached Audio for post_id: {post.get('post_id')}]"
+                        
+                    except Exception as e:
+                        print(f'Failed to process audio disguised as video at {content}: {e}')
+                        post['content'] = '[Failed to load attached audio]'
+
+                    finally:
+                        if os.path.exists(temp_video_path):
+                            os.remove(temp_video_path)
+
+                modified_posts.append(post) #adaugam tot posts ul oops
+
+
+
+            posts_env_str = json.dumps(modified_posts, indent=4)
+            posts_env = self.posts_env_template.substitute(posts=posts_env_str)
+        else:
+            posts_env = "After refreshing, there are no existing posts."
+
+        return posts_env, image_list, video_bytes_list
+
+    async def to_multimodal_prompt(
+            self,
+            include_posts: bool = True,
+            include_followers: bool = True,
+            include_follows: bool = True,
+    ) -> tuple[str, list]:
+        followers_env = (await self.get_followers_env()
+                        if include_follows else "No followers.")
+        follows_env = (await self.get_follows_env()
+                      if include_followers else "No follows.")
+
+        if include_posts:
+            posts_env, image_list, video_bytes_list = await self.get_multimodal_posts_env()
+        else:
+            posts_env = ""
+            image_list = []
+            video_bytes_list = []
+    
+        text_prompt =  self.env_template.substitute(
+            followers_env=followers_env,
+            follows_env=follows_env,
+            posts_env=posts_env,
+            groups_env=await self.get_group_env(),
+        )
+
+        return text_prompt, image_list, video_bytes_list
+

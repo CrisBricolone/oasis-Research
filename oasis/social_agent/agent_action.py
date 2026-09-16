@@ -57,6 +57,9 @@ class SocialAction:
                 self.send_to_group,
                 self.create_group,
                 self.listen_from_group,
+                self.post_photo,
+                self.post_video,
+                self.post_sound
             ]
         ]
 
@@ -756,3 +759,12 @@ class SocialAction:
         r"""Listen messages from groups"""
         return await self.perform_action(self.agent_id,
                                          ActionType.LISTEN_FROM_GROUP.value)
+
+    async def post_photo(self, image_path: str):
+        return await self.perform_action(image_path, ActionType.POST_PHOTO.value)
+
+    async def post_video(self, video_path: str):
+        return await self.perform_action(video_path, ActionType.POST_VIDEO.value)
+
+    async def post_sound(self, sound_path:str):
+        return await self.perform_action(sound_path, ActionType.POST_SOUND.value)
