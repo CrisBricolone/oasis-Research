@@ -204,7 +204,7 @@ class Platform:
                             if action == ActionType.DISLIKE_POST:
                                 gorse_fb_type = "dislike" 
                             elif action == ActionType.REPOST:
-                                gorse_fb_type = "share"
+                                gorse_fb_type = "like"
                             
                             if target_item_id is not None:
                                 print(f"[DEBUG 4] -> PUSH LA GORSE: tip={gorse_fb_type}, user={agent_id}, item={target_item_id}, time={gorse_time}")

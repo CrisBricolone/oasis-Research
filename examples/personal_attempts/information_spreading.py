@@ -60,7 +60,7 @@ async def main():
     actions_3 = {
         agent: LLMAction()
         # Activate 5 agents with id 1, 3, 5, 7, 9
-        for _, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9])
+        for _, agent in env.agent_graph.get_agents()
     }
 
     await env.step(actions_3)
@@ -73,13 +73,70 @@ async def main():
 
     await env.step(actions_4)
 
+    actions_5 = {
+        agent: LLMAction()
+        for _, agent in env.agent_graph.get_agents()
+    }
+
+    await env.step(actions_5)
+    
+    actions_6 = {
+        agent: LLMAction()
+        for _, agent in env.agent_graph.get_agents()
+    }
+
+    await env.step(actions_6)
+
+    actions_7 = {
+        agent: LLMAction()
+        for _, agent in env.agent_graph.get_agents()
+    }
+
+    await env.step(actions_7)
+
     await env.close()
 
-    pg = prop_graph(source_post, db_path, viz=True)
-    pg.build_graph()
-    pg.plot_scale_time()
-    pg.plot_depth_time()
-    pg.plot_max_breadth_time()
+    pg = prop_graph(source_post, db_path, viz=False)
+    import matplotlib.pyplot as plt
+
+    try:
+        pg.build_graph()
+
+        t_scale, y_scale = pg.plot_scale_time()
+        t_depth, y_depth = pg.plot_depth_time()
+        t_breadth, y_breadth = pg.plot_max_breadth_time()
+
+        fig, axes = plt.subplots(3, 1, figsize=(5, 9))
+
+        #Grafic 1: Scale
+        axes[0].plot(t_scale, y_scale, color='blue', linewidth=2)
+        axes[0].set_title("Propagation Scale-Time")
+        axes[0].set_xlabel("Time/minute")
+        axes[0].set_ylabel("Scale (Users)")
+        axes[0].grid(True, linestyle='--', alpha=0.7)
+
+        #Grafic 2: Depth
+        axes[1].plot(t_depth, y_depth, color='red', linewidth=2)
+        axes[1].set_title("Propagation Depth-Time")
+        axes[1].set_xlabel("Time/minute")
+        axes[1].set_ylabel("Depth")
+        axes[1].grid(True, linestyle='--', alpha=0.7)
+
+        #Grafic 3: Max Breadth
+        axes[2].plot(t_breadth, y_breadth, color='green', linewidth=2)
+        axes[2].set_title("Propagation Max Breadth-Time")
+        axes[2].set_xlabel("Time/minute")
+        axes[2].set_ylabel("Max Breadth")
+        axes[2].grid(True, linestyle='--', alpha=0.7)
+
+        plt.tight_layout()
+        plt.show()
+
+        pg.viz = True
+        pg.viz_graph(time_threshold=999)
+
+    except Exception as e:
+        print(f'Could not show graph: {e}')
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -41,73 +41,61 @@ class prop_graph:
         # Close the database connection
         conn.close()
 
-        all_reposts_and_time = []
+        source_df = df[df['content'].str.contains(self.source_post_content[0:10], na=False, regex=False)]
+        if source_df.empty:
+            print("Source post not in DB")
+            self.post_exist = False
+            return
 
+        self.post_exist = True
+        source_post_id = int(source_df.iloc[0]['post_id'])
+        self.root_id = str(int(source_df.iloc[0]['user_id']))
+        start_time = source_df.iloc[0]['created_at']
+
+        #all_reposts_and_time = []
+        #Codul asta este foarte funky, ce avem noi nu functioneaza nici pe departe asa
         # Collect repost data
-        for i in range(len(df)):
-            content = df.loc[i]["content"]
-            # There are some encoding issues with the data, use [0:10] to
-            # avoid them
-            if self.post_exist is False and self.source_post_content[
-                    0:10] in content:
-                self.post_exist = True
-                self.root_id = df.loc[i]["user_id"]
-            if "repost from" in content and (self.source_post_content[0:10]
-                                             in content):
-                repost_history = content.split(". original_post: ")[:-1]
-                repost_time = df.loc[i]["created_at"]
-                all_reposts_and_time.append((repost_history, repost_time))
+        # for i in range(len(df)):
+        #     content = df.loc[i]["content"]
+        #     # There are some encoding issues with the data, use [0:10] to
+        #     # avoid them
+        #     if self.post_exist is False and self.source_post_content[
+        #             0:10] in content:
+        #         self.post_exist = True
+        #         self.root_id = df.loc[i]["user_id"]
+        #     if "repost from" in content and (self.source_post_content[0:10]
+        #                                      in content):
+        #         repost_history = content.split(". original_post: ")[:-1]
+        #         repost_time = df.loc[i]["created_at"]
+        #         all_reposts_and_time.append((repost_history, repost_time))
 
-        # Build the graph
-        # Given data
-        data = all_reposts_and_time
-        # Get the start time
-        # start_time =  df.loc[df["content"]==
-        # self.source_post_content]["created_at"].item()
-        start_time = 0
-        # Now start time is int, representing minutes
-        # start_time = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S.%f')
 
-        # Create a directed graph
         self.G = nx.DiGraph()
+        self.G.add_node(self.root_id, timestamp=0)
+        post_user_map = {int(row['post_id']): str(int(row['user_id'])) for _, row in df.iterrows()}
+        reposts_df = df[df['original_post_id'].notna()]
 
-        first_flag = 1
-        # Extract edges from the data and add them to the graph
-        for reposts, timestamp in data:
-            # timestamp = datetime.strptime(
-            #     timestamp_str, '%Y-%m-%d %H:%M:%S.%f')
-            time_diff = timestamp - start_time
-            for repost in reposts:
-                repost_info = repost.split(" repost from ")
-                user = repost_info[0]
-                original_user = repost_info[1]
+        for _, row in reposts_df.iterrows():
+            orig_post_id = int(row['original_post_id'])
 
-                if first_flag:
-                    # Get the root node corresponding to the source_post
-                    self.root_id = original_user
-                    first_flag = 0
-                    # Add a timestamp attribute for the root node, value is 0
-                    if original_user not in self.G:
-                        self.G.add_node(original_user, timestamp=0)
+            if orig_post_id in post_user_map:
+                orig_user = post_user_map[orig_post_id]
+                repost_user = str(int(row['user_id']))
+                time_diff = int(row['created_at'] - start_time)
 
-                # Add a timestamp attribute for other nodes, value is
-                # time_diff in minutes
-                if user not in self.G:
-                    self.G.add_node(user, timestamp=time_diff)
-                    # print(f"user {user}, timestamp:{time_diff}")
+                if repost_user not in self.G:
+                    self.G.add_node(repost_user, timestamp=time_diff)
 
-                self.G.add_edge(original_user, user)
+                self.G.add_edge(orig_user, repost_user)
+            
 
         # Get the start and end timestamps of propagation
         self.start_timestamp = 0
         timestamps = nx.get_node_attributes(self.G, "timestamp")
-        try:
+        if timestamps:
             self.end_timestamp = max(timestamps.values()) + 3
-        except Exception as e:
-            print(self.source_post_content)
-            print(f"ERROR: {e}, may be caused by empty repost path")
-            print(f"the simulation db is empty: {not self.post_exist}")
-            print("Length of repost path:", len(all_reposts_and_time))
+        else:
+            self.end_timestamp = 3
 
         # Calculate propagation graph depth, scale, maximum width
         # (max_breadth), and total structural virality
@@ -115,6 +103,7 @@ class prop_graph:
         self.total_scale = self.G.number_of_nodes()
         self.total_max_breadth = 0
         last_breadth_list = [1]
+
         for depth in range(self.total_depth):
             breadth = len(
                 list(
