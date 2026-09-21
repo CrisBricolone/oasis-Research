@@ -207,7 +207,7 @@ class SocialAgent(ChatAgent):
         """
         # user conduct test to agent
         user_msg = BaseMessage.make_user_message(
-            role_name="User", content=("You are a twitter user."))
+            role_name="User", content=("You are a tiktok user."))
 
         if self.interview_record:
             # Test memory should not be writed to memory.
