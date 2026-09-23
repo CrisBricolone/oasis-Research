@@ -16,7 +16,7 @@ async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
         model_type='Qwen/Qwen3-8B-AWQ',
-        url = 'http://127.0.0.1:8000/v1',
+        url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.1}
     )

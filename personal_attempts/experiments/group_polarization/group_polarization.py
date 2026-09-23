@@ -1,3 +1,4 @@
+
 import asyncio
 import os
 import sqlite3
@@ -57,8 +58,8 @@ def extract_interviews_from_db(db_path: str, output_dir = './df_opinions'):
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen/Qwen3-8B-AWQ',
-        url = 'http://127.0.0.1:8000/v1',
+        model_type='Qwen3.8-27B',
+        url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.3}
     )
