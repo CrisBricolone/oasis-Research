@@ -80,7 +80,7 @@ async def main():
         available_actions=available_actions
     )
 
-    db_path = "data/twitter_simulation.db"
+    db_path = "data/tiktok_simulation.db"
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
@@ -94,7 +94,7 @@ async def main():
 
     source_post = 'Should Halen take the risk to write a great novel, or should he continue writing ordinary novels without taking any risks?'
 
-    question = 'What should Halen do? (IMPORTANT: Answer directly with your opinion in plain text. Ignore the system instruction to use tool calling for this specific reply. Do NOT use <tool_call> tags).'
+    question = 'What should Halen do?'
 
     actions_1 = {}
     actions_1[env.agent_graph.get_agent(0)] = ManualAction(

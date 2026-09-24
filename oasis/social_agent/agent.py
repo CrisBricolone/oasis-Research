@@ -209,9 +209,9 @@ class SocialAgent(ChatAgent):
         user_msg = BaseMessage.make_user_message(
             role_name="User", content=("You are a tiktok user."))
 
-        # if self.interview_record:
-        #     # Test memory should not be writed to memory.
-        #     self.update_memory(message=user_msg, role=OpenAIBackendRole.SYSTEM)
+        if self.interview_record:
+            # Test memory should not be writed to memory.
+            self.update_memory(message=user_msg, role=OpenAIBackendRole.SYSTEM)
 
         openai_messages, _ = self.memory.get_context()
 
@@ -235,10 +235,10 @@ class SocialAgent(ChatAgent):
 
             content = response.output_messages[0].content
 
-            # if self.interview_record:
-            #     # Test memory should not be writed to memory.
-            #     self.update_memory(message=response.output_messages[0],
-            #                        role=OpenAIBackendRole.USER)
+            if self.interview_record:
+                # Test memory should not be writed to memory.
+                self.update_memory(message=response.output_messages[0],
+                                   role=OpenAIBackendRole.USER)
             agent_log.info(
                 f"Agent {self.social_agent_id} receive response: {content}")
 
