@@ -648,52 +648,39 @@ async def generate_twitter_agent_graph(
         agent_graph.add_agent(agent)
     return agent_graph
 
-import networkx as nx
-#Basic version for generating the tiktok agent_graph
-#MAI TREBUIE GANDIT LA ASTA, ABORDAREA NU ESTE TOCMAI BUNA!
-# async def generate_tiktok_agent_graph(
-#         profile_path:str,
-#         model: Optional[Union[BaseModelBackend, List[BaseModelBackend],
-#                               ModelManager]] = None,
-#         available_actions: list[ActionType] = None,
-#         m_connections: int = 3
-# ) -> AgentGraph:
-    
-#     agent_info = pd.read_csv(profile_path)
-#     num_agents = len(agent_info)
-#     agent_graph = AgentGraph()
+async def generate_tiktok_agent_graph(
+    profile_path: str,
+    model: Optional[Union[BaseModelBackend, List[BaseModelBackend],
+                          ModelManager]] = None,
+    available_actions: list[ActionType] = None,
+) -> AgentGraph:
+    agent_info = pd.read_csv(profile_path)
 
-#     #verificare daca avem coloana de follower_count (pt kaggle followers)
-#     if 'followers' not in agent_info.columns:
-#         agent_info['followers'] = 0
+    agent_graph = AgentGraph()
 
-#     for agent_id in range(num_agents):
-#         profile = {
-#             "nodes": [],
-#             "edges": [],
-#             "other_info": {},
-#         }
+    for agent_id in range(len(agent_info)):
+        profile = {
+            "nodes": [],
+            "edges": [],
+            "other_info": {},
+        }
+        profile["other_info"]["user_profile"] = agent_info["user_char"][
+            agent_id]
 
-#         #pentru setul de date de kaggle trb sa preluam biography in loc de user_char -> trb vazut ce se intampla mai exact cu id ul 
-#         profile["other_info"]["user_profile"] = agent_info["biography"][agent_id]
+        user_info = UserInfo(
+            name=agent_info["username"][agent_id],
+            description=agent_info["description"][agent_id],
+            profile=profile,
+            recsys_type='gorse',
+        )
 
-#         user_info = UserInfo(
-#             #din nou trb inlocuite putin pentru a se potrivi cu cele de kaggle
-#             name=agent_info["account_id"][agent_id],
-#             description=agent_info["biography"][agent_id],
-#             profile=profile,
-#             recsys_type='gorse',
-#         )
+        agent = SocialAgent(
+            agent_id=agent_id,
+            user_info=user_info,
+            model=model,
+            agent_graph=agent_graph,
+            available_actions=available_actions,
+        )
 
-#         agent = SocialAgent(
-#             agent_id=agent_id,
-#             user_info=user_info,
-#             model=model,
-#             agent_graph=agent_graph,
-#             available_actions=available_actions,
-#         )
-
-#         agent_graph.add_agent(agent)
-
-
-#     return agent_graph
+        agent_graph.add_agent(agent)
+    return agent_graph

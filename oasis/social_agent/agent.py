@@ -209,9 +209,9 @@ class SocialAgent(ChatAgent):
         user_msg = BaseMessage.make_user_message(
             role_name="User", content=("You are a tiktok user."))
 
-        if self.interview_record:
-            # Test memory should not be writed to memory.
-            self.update_memory(message=user_msg, role=OpenAIBackendRole.SYSTEM)
+        # if self.interview_record:
+        #     # Test memory should not be writed to memory.
+        #     self.update_memory(message=user_msg, role=OpenAIBackendRole.SYSTEM)
 
         openai_messages, _ = self.memory.get_context()
 
@@ -229,31 +229,39 @@ class SocialAgent(ChatAgent):
         # NOTE: this is a temporary solution.
         # Camel can not stop updating the agents' memory after stop and astep
         # now.
+        try:
+            response = await self._aget_model_response(
+                openai_messages=openai_messages)
 
-        response = await self._aget_model_response(
-            openai_messages=openai_messages)
+            content = response.output_messages[0].content
 
-        content = response.output_messages[0].content
+            # if self.interview_record:
+            #     # Test memory should not be writed to memory.
+            #     self.update_memory(message=response.output_messages[0],
+            #                        role=OpenAIBackendRole.USER)
+            agent_log.info(
+                f"Agent {self.social_agent_id} receive response: {content}")
 
-        if self.interview_record:
-            # Test memory should not be writed to memory.
-            self.update_memory(message=response.output_messages[0],
-                               role=OpenAIBackendRole.USER)
-        agent_log.info(
-            f"Agent {self.social_agent_id} receive response: {content}")
+            # Record the complete interview (prompt + response) through the channel
+            interview_data = {"prompt": interview_prompt, "response": content}
+            result = await self.env.action.perform_action(
+                interview_data, ActionType.INTERVIEW.value)
 
-        # Record the complete interview (prompt + response) through the channel
-        interview_data = {"prompt": interview_prompt, "response": content}
-        result = await self.env.action.perform_action(
-            interview_data, ActionType.INTERVIEW.value)
-
-        # Return the combined result
-        return {
-            "user_id": self.social_agent_id,
-            "prompt": openai_messages,
-            "content": content,
-            "success": result.get("success", False)
-        }
+            # Return the combined result
+            return {
+                "user_id": self.social_agent_id,
+                "prompt": openai_messages,
+                "content": content,
+                "success": result.get("success", False)
+            }
+        except Exception as e:
+            agent_log.error(f"Agent {self.social_agent_id} INTERVIEW ERROR: {e}")
+            return {
+                "user_id": self.social_agent_id,
+                "prompt": openai_messages,
+                "content": f"Failed due to error: {e}",
+                "success": False
+            }
 
     async def perform_action_by_hci(self) -> Any:
         print("Please choose one function to perform:")

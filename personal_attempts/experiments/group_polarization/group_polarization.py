@@ -57,7 +57,7 @@ def extract_interviews_from_db(db_path: str, output_dir = './df_opinions'):
 
 async def main():
     vllm_model_1 = ModelFactory.create(
-        model_platform=ModelPlatformType.VLLM,
+        model_platform=ModelPlatformType.OPENAI,
         model_type='Qwen3.8-27B',
         url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
@@ -72,15 +72,15 @@ async def main():
     #     model_config_dict={'temperature': 0.0}
     # )
 
-    available_actions = [ActionType.CREATE_POST, ActionType.LIKE_POST, ActionType.FOLLOW, ActionType.REPOST, ActionType.DO_NOTHING]
+    available_actions = [ActionType.CREATE_POST, ActionType.LIKE_POST, ActionType.FOLLOW, ActionType.REPOST, ActionType.DO_NOTHING, ActionType.CREATE_COMMENT]
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=("../../../data/twitter_dataset/anonymous_topic_200_1h/"
+        profile_path=("data/twitter_dataset/anonymous_topic_200_1h/"
                       "False_Business_0.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
-    db_path = "../../../data/twitter_simulation.db"
+    db_path = "data/twitter_simulation.db"
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
@@ -94,7 +94,7 @@ async def main():
 
     source_post = 'Should Halen take the risk to write a great novel, or should he continue writing ordinary novels without taking any risks?'
 
-    question = 'What should Halen do?'
+    question = 'What should Halen do? (IMPORTANT: Answer directly with your opinion in plain text. Ignore the system instruction to use tool calling for this specific reply. Do NOT use <tool_call> tags).'
 
     actions_1 = {}
     actions_1[env.agent_graph.get_agent(0)] = ManualAction(
@@ -112,17 +112,17 @@ async def main():
 
     actions_interviews = {}
     for _, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9]):
+        agent.interview_record = False
         actions_interviews[agent] = ManualAction(
             action_type=ActionType.INTERVIEW,
             action_args={"prompt": question} 
         )
 
     #base opinions
-    await env.step(actions_interviews)
 
     total_steps = 2
     interview_cnt = 1
-    for i in range(1, total_steps + 1):
+    for i in range(0, total_steps + 1):
         if not ((i + 1) % interview_cnt):
             print(f'Colectam opiniile dupa runda {i + 1}\n')
             await env.step(actions_interviews)
