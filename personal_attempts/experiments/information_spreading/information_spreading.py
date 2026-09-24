@@ -6,31 +6,32 @@ from camel.types import ModelPlatformType
 from camel.messages import BaseMessage
 
 import oasis
-from oasis import (ActionType, LLMAction, ManualAction, generate_tiktok_agent_graph)
+from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_graph)
 
 import sys
-sys.path.append('../../visualization/twitter_simulation/align_with_real_world/code')
+sys.path.append('../../../visualization/twitter_simulation/align_with_real_world/code')
 from graph import prop_graph
 import random
 from datetime import datetime, timedelta
+import pandas as pd
+import json
 
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
         model_type='Qwen/Qwen3-8B-AWQ',
-        url = 'http://127.0.0.1:8609/v1',
+        url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.1}
     )
 
-    available_actions = [ActionType.CREATE_POST,
-                        ActionType.LIKE_POST, 
+    available_actions = [ActionType.LIKE_POST, 
                         ActionType.FOLLOW,
                         ActionType.REPOST,
                         ActionType.DO_NOTHING]
     #generate tiktok agent graph e cam acelasi lucru cu cel de twitter, nu face nimic in plus in mod special
-    agent_graph = await generate_tiktok_agent_graph(
-        profile_path=("../../../data/tiktok/processed_tiktok_dataset_700.csv/"),
+    agent_graph = await generate_twitter_agent_graph(
+        profile_path=("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
@@ -48,45 +49,64 @@ async def main():
         database_path=db_path
     )
     await env.reset()
+    try:
+        #TODO -> pe viitor ar fi bine sa introducem in simulare si cateva dintre postarile anterioare ale userilor
+        #-> also ne trb mai multe topic uri pe baza carora sa actioneze !!!
+        actions_spread = {}
+        actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
+            action_type=ActionType.CREATE_POST,
+            action_args={'content': source_post}
+        )
+        await env.step(actions_spread)
 
-    #TODO -> pe viitor ar fi bine sa introducem in simulare si cateva dintre postarile anterioare ale userilor
-    #-> also ne trb mai multe topic uri pe baza carora sa actioneze !!!
-    actions_spread = {}
-    actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
-        action_type=ActionType.CREATE_POST,
-        action_args={'content': source_post}
-    )
-    await env.step(actions_spread)
-
-    #TODO
-    #We need to create our own time engine cu randomised chance of interaction in functie de time step
-    #in paper fiecare step = 3 minute reale -> fiecare 20 de pasi schimbam elementul din vector la care ne uitam
-    #cam doar asta ar fi pe partea de time step
-
-    #O sa vrem sa facem mai multe simulari cu timpi random, si cu diferite subiecte
-    virtual_time = datetime(2026, 9, 24, 8, 0)
-    minutes_per_step = 3
-
-    for step in range(0, 60):
-        current_time = virtual_time + timedelta(step * minutes_per_step)
-        current_hour = current_time.hour
-
-        print(f"\n--- Step {step} | Virtual Time: {current_time.strftime('%H:%M')} ---")
-        active_actions = {}
-
-        for agent_id, agent in env.agent_graph.get_agents():
-            #TODO -> implementare cu probabilitate pe bune 
-            prob = 0.15
-            rand_chance = random.random()
-
-            if rand_chance <= prob:
-                active_actions[agent] = LLMAction()
-
-        if active_actions:
-            env.step(active_actions)
+        #TODO - SOLVED
+        #We need to create our own time engine cu randomised chance of interaction in functie de time step
+        #in paper fiecare step = 3 minute reale -> fiecare 20 de pasi schimbam elementul din vector la care ne uitam
+        #cam doar asta ar fi pe partea de time step
 
 
-    await env.close()
+        #O sa vrem sa facem mai multe simulari cu timpi random, si cu diferite subiecte
+
+        df_users = pd.read_csv("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv")
+        user_activity_map = {}
+        for _, row in df_users.iterrows():
+            user_id = str(row['Unnamed: 0'])
+            vector_str = row.get('activity_vector', '[]')
+            
+            try:
+                vector = json.loads(vector_str)
+                if len(vector) != 24:
+                    vector = [0.15] * 24
+            except:
+                vector = [0.15] * 24
+                
+            user_activity_map[user_id] = vector
+
+        virtual_time = datetime(2026, 9, 24, 8, 0)
+        minutes_per_step = 3
+
+        for step in range(0, 3):
+            current_time = virtual_time + timedelta(minutes=step * minutes_per_step)
+            current_hour = current_time.hour
+
+            print(f"\n--- Step {step} | Virtual Time: {current_time.strftime('%H:%M')} ---")
+            active_actions = {}
+
+            for agent_id, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39]):
+                #TODO -> implementare cu probabilitate pe bune - SOLVED 
+                agent_vector = user_activity_map.get(str(agent_id), [0.15] * 24)
+                base_prob = float(agent_vector[current_hour])
+                prob = base_prob
+
+                rand_chance = random.random()
+
+                if rand_chance <= prob:
+                    active_actions[agent] = LLMAction()
+
+            if active_actions:
+                await env.step(active_actions)
+    finally:
+        await env.close()
 
     pg = prop_graph(source_post, db_path, viz=False)
     import matplotlib.pyplot as plt
