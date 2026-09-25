@@ -73,19 +73,33 @@ class prop_graph:
         self.G = nx.DiGraph()
         self.G.add_node(self.root_id, timestamp=0)
         post_user_map = {int(row['post_id']): str(int(row['user_id'])) for _, row in df.iterrows()}
-        reposts_df = df[df['original_post_id'].notna()]
+        reposts_df = df[df['original_post_id'].notna()].sort_values('created_at')
 
         for _, row in reposts_df.iterrows():
             orig_post_id = int(row['original_post_id'])
 
-            if orig_post_id in post_user_map:
-                orig_user = post_user_map[orig_post_id]
-                repost_user = str(int(row['user_id']))
-                time_diff = int(row['created_at'] - start_time)
+            if orig_post_id not in post_user_map:
+                continue
 
-                if repost_user not in self.G:
-                    self.G.add_node(repost_user, timestamp=time_diff)
+            orig_user = post_user_map[orig_post_id]
+            repost_user = str(int(row['user_id']))
+            time_diff = int(row['created_at'] - start_time)
 
+            if orig_user == repost_user:
+                continue
+
+            # Enforce single incoming edge: this node already has a parent, skip
+            if repost_user in self.G and self.G.in_degree(repost_user) > 0:
+                continue
+
+            if repost_user not in self.G:
+                self.G.add_node(repost_user, timestamp=time_diff)
+
+            try:
+                has_cycle = nx.has_path(self.G, repost_user, orig_user)
+            except nx.NetworkXNoPath:
+                has_cycle = False
+            if not has_cycle:
                 self.G.add_edge(orig_user, repost_user)
             
 
@@ -114,9 +128,9 @@ class prop_graph:
             if breadth > self.total_max_breadth:
                 self.total_max_breadth = breadth
 
-        undirect_G = self.G.to_undirected()
-        self.total_structural_virality = nx.average_shortest_path_length(
-            undirect_G)
+        if self.root_id in self.G:
+            component = nx.node_connected_component(self.G.to_undirected(), self.root_id)
+            self.G = self.G.subgraph(component).copy()
 
     def viz_graph(self, time_threshold=10000):
         # Visualize the graph, can choose to only view the propagation graph

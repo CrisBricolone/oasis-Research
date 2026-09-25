@@ -501,41 +501,46 @@ class Platform:
             self.pl_utils._execute_db_command(repost_check_query,
                                               (post_id, user_id))
             if self.db_cursor.fetchone():
-                # for common and quote post, check if the post has been
-                # reposted
                 return {
                     "success": False,
                     "error": "Repost record already exists."
                 }
 
             post_type_result = self.pl_utils._get_post_type(post_id)
-            post_insert_query = ("INSERT INTO post (user_id, original_post_id"
-                                 ", created_at) VALUES (?, ?, ?)")
+            if not post_type_result:
+                return {"success": False, "error": "Post not found."}
+            
+            self.db_cursor.execute("SELECT content FROM post WHERE post_id = ?", (post_id,))
+            content_row = self.db_cursor.fetchone()
+            parent_content = content_row[0] if content_row and content_row[0] else ""
+
+            post_insert_query = (
+                "INSERT INTO post (user_id, original_post_id, content, created_at) "
+                "VALUES (?, ?, ?, ?)"
+            )
+            
             # Update num_shares for the found post
             update_shares_query = (
                 "UPDATE post SET num_shares = num_shares + 1 WHERE post_id = ?"
             )
 
-            if not post_type_result:
-                return {"success": False, "error": "Post not found."}
-            elif (post_type_result['type'] == 'common'
-                  or post_type_result['type'] == 'quote'):
+            if post_type_result['type'] == 'common' or post_type_result['type'] == 'quote':
                 self.pl_utils._execute_db_command(
-                    post_insert_query, (user_id, post_id, current_time),
+                    post_insert_query, (user_id, post_id, parent_content, current_time),
                     commit=True)
-                self.pl_utils._execute_db_command(update_shares_query,
-                                                  (post_id, ),
-                                                  commit=True)
+                self.pl_utils._execute_db_command(
+                    update_shares_query, (post_id, ),
+                    commit=True)
+                    
             elif post_type_result['type'] == 'repost':
                 repost_check_query = (
                     "SELECT * FROM 'post' WHERE original_post_id = ? AND "
                     "user_id = ?")
                 self.pl_utils._execute_db_command(
                     repost_check_query,
-                    (post_type_result['root_post_id'], user_id))
+                    (post_id, user_id))
 
                 if self.db_cursor.fetchone():
-                    # for repost post, check if the post has been reposted
                     return {
                         "success": False,
                         "error": "Repost record already exists."
@@ -543,7 +548,7 @@ class Platform:
 
                 self.pl_utils._execute_db_command(
                     post_insert_query,
-                    (user_id, post_type_result['root_post_id'], current_time),
+                    (user_id, post_id, parent_content, current_time),
                     commit=True)
                 self.pl_utils._execute_db_command(
                     update_shares_query, (post_type_result['root_post_id'], ),

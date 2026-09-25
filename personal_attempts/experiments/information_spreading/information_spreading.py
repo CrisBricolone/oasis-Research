@@ -25,10 +25,7 @@ async def main():
         model_config_dict={'temperature': 0.1}
     )
 
-    available_actions = [ActionType.LIKE_POST, 
-                        ActionType.FOLLOW,
-                        ActionType.REPOST,
-                        ActionType.DO_NOTHING]
+    available_actions = [ActionType.REPOST,]
     #generate tiktok agent graph e cam acelasi lucru cu cel de twitter, nu face nimic in plus in mod special
     agent_graph = await generate_twitter_agent_graph(
         profile_path=("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv"),
@@ -66,7 +63,21 @@ async def main():
 
 
         #O sa vrem sa facem mai multe simulari cu timpi random, si cu diferite subiecte
+        action_repost_1 = {}
+        action_repost_1[env.agent_graph.get_agent(1)] = ManualAction(
+            action_type=ActionType.REPOST,
+            action_args={'post_id': 1}
+        )
 
+        await env.step(action_repost_1)
+
+        action_repost_2 = {}
+        action_repost_2[env.agent_graph.get_agent(2)] = ManualAction(
+            action_type=ActionType.REPOST,
+            action_args={'post_id': 2}
+        )
+
+        await env.step(action_repost_2)
         df_users = pd.read_csv("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv")
         user_activity_map = {}
         for _, row in df_users.iterrows():

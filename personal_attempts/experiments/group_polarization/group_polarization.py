@@ -72,7 +72,9 @@ async def main():
     #     model_config_dict={'temperature': 0.0}
     # )
 
-    available_actions = [ActionType.CREATE_POST, ActionType.LIKE_POST, ActionType.FOLLOW, ActionType.REPOST, ActionType.DO_NOTHING, ActionType.CREATE_COMMENT]
+    available_actions = [ActionType.LIKE_POST, ActionType.DISLIKE_POST, ActionType.FOLLOW,
+                      ActionType.REPOST, ActionType.CREATE_COMMENT, ActionType.LIKE_COMMENT,
+                      ActionType.DISLIKE_COMMENT, ActionType.DO_NOTHING]
     agent_graph = await generate_twitter_agent_graph(
         profile_path=("data/twitter_dataset/anonymous_topic_200_1h/"
                       "False_Business_0.csv"),

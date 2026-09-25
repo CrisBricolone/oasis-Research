@@ -102,8 +102,8 @@ class OasisEnv:
                     db_path=database_path,
                     channel=self.channel,
                     recsys_type="gorse",
-                    refresh_rec_post_count=2,
-                    max_rec_post_len=2,
+                    refresh_rec_post_count=5,
+                    max_rec_post_len=100,
                     following_post_count=3
                 )
                 self.platform_type = DefaultPlatformType.TIKTOK

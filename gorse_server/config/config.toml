@@ -119,7 +119,7 @@ http_cors_domains = []
 http_cors_methods = []
 
 # Number of working jobs in the master node. The default value is 1.
-n_jobs = 1
+n_jobs = 4
 
 # Meta information timeout. The default value is 10s.
 meta_timeout = "10s"
@@ -159,7 +159,7 @@ cache_expire = "10s"
 cache_size = 100
 
 # Recommended cache expire time. The default value is 72h.
-cache_expire = "72h"
+cache_expire = "1m"
 
 # The context size for online recommendations. Online recommendations can't use all user feedbacks to generate
 # recommendations for efficiency consideration. Instead, only the latest `context_size` feedbacks are used.
@@ -249,7 +249,7 @@ data["items"].map((item) => {
 type = "mf"
 
 # The time period for model fitting. The default value is "60m".
-fit_period = "60m"
+fit_period = "1m"
 
 # The number of epochs for model fitting. The default value is 100.
 fit_epoch = 100
@@ -291,7 +291,7 @@ cache_expire = "120h"
 recommenders = ["latest", "collaborative", "non-personalized/most_starred_weekly", "item-to-item/neighbors", "user-to-user/neighbors"]
 
 # The time period for model fitting. The default value is "60m".
-fit_period = "60m"
+fit_period = "1m"
 
 # The number of epochs for model fitting. The default value is 100.
 fit_epoch = 100

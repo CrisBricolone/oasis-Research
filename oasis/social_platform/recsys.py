@@ -152,14 +152,22 @@ async def rec_sys_gorse(post_table: List[Dict[str, Any]],
         return [fallback_posts for _ in user_table]
 
     async def fetch_for_user(user_id):
+        rec_list = []
+
         try:
             gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
+
             if gorse_recs:
-                return [int(item.id) for item in gorse_recs]
+                rec_list =  [int(item.id) for item in gorse_recs]
+
         except Exception as e:
             print(f'Gorse Recsys Error: {e}')
 
-        return fallback_posts
+        for fp in fallback_posts:
+                if fp not in rec_list:
+                    rec_list.append(fp)
+
+        return rec_list[:max_rec_post_len]
 
     tasks = [fetch_for_user(user['user_id']) for user in user_table]
     new_rec_matrix = await asyncio.gather(*tasks)
