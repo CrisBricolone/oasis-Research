@@ -135,7 +135,10 @@ def reset_globals():
 
 from gorse import AsyncGorse
 import asyncio
-#foarte questionable aici daca ar trb sa fie async
+
+GORSE_CONCURRENCY_LIMIT = 50 
+sem = asyncio.Semaphore(GORSE_CONCURRENCY_LIMIT)
+
 async def rec_sys_gorse(post_table: List[Dict[str, Any]],
                   user_table: List[Dict[str, Any]],
                   gorse_client: AsyncGorse,
@@ -144,7 +147,6 @@ async def rec_sys_gorse(post_table: List[Dict[str, Any]],
 
     new_rec_matrix = []
 
-    #introducem bucata asta de cod pentru cazul in care suntem la prima rulare:
     sorted_posts = sorted(post_table, key=lambda x: x['created_at'], reverse = True)
     fallback_posts = [post['post_id'] for post in sorted_posts][:max_rec_post_len]
 
@@ -154,21 +156,20 @@ async def rec_sys_gorse(post_table: List[Dict[str, Any]],
     async def fetch_for_user(user_id):
         rec_list = []
 
-        try:
-            gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
-
-            if gorse_recs:
-                rec_list =  [int(item.id) for item in gorse_recs]
-
-        except Exception as e:
-            print(f'Gorse Recsys Error: {e}')
+        async with sem:
+            try:
+                gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
+                if gorse_recs:
+                    rec_list =  [int(item.id) for item in gorse_recs]
+            except Exception as e:
+                print(f'Gorse Recsys Error: {e}')
 
         for fp in fallback_posts:
                 if fp not in rec_list:
                     rec_list.append(fp)
 
         return rec_list[:max_rec_post_len]
-
+    
     tasks = [fetch_for_user(user['user_id']) for user in user_table]
     new_rec_matrix = await asyncio.gather(*tasks)
 

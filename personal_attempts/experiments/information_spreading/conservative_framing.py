@@ -4,7 +4,7 @@ import numpy as np
 INPUT_CSV = "../../../data/tiktok/processed_tiktok_dataset_700_with_vectors.csv"
 OUTPUT_CSV = "../../../data/tiktok/polarization_dataset_700_conservative.csv"
  
-NUM_CORE_USERS = 113  # matches the paper's core-user count for this experiment
+NUM_CORE_USERS = 267  # matches the paper's core-user count for this experiment
  
 conservative_prompts = [
     " You hold politically conservative views: you value tradition, caution, and established norms, and tend to be skeptical of risky or unconventional choices.",

@@ -58,8 +58,8 @@ def extract_interviews_from_db(db_path: str, output_dir = './df_opinions'):
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.OPENAI,
-        model_type='Qwen3.8-27B',
-        url = 'http://127.0.0.1:8609/v1',
+        model_type='Qwen/Qwen3-8B-AWQ',
+        url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.3}
     )
@@ -76,13 +76,12 @@ async def main():
                       ActionType.REPOST, ActionType.CREATE_COMMENT, ActionType.LIKE_COMMENT,
                       ActionType.DISLIKE_COMMENT, ActionType.DO_NOTHING]
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=("data/twitter_dataset/anonymous_topic_200_1h/"
-                      "False_Business_0.csv"),
+        profile_path=("../../../data/tiktok/group_polar/polarization_dataset_700_conservative.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
-    db_path = "data/tiktok_simulation.db"
+    db_path = "../../../data/tiktok_simulation.db"
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
@@ -124,16 +123,13 @@ async def main():
 
     total_steps = 2
     interview_cnt = 1
-    for i in range(0, total_steps + 1):
-        if not ((i + 1) % interview_cnt):
-            print(f'Colectam opiniile dupa runda {i + 1}\n')
+    await env.step(actions_interviews)   
+
+    for i in range(total_steps):
+        await env.step(actions_agents)
+        if (i + 1) % interview_cnt == 0:
             await env.step(actions_interviews)
 
-        await env.step(actions_agents)
-
-    await env.close()
-
-    #trimitem rezultatul la interview-uri in df (asa il prelucreaza ei in group_polarization_eval si o sa urmez oarecum ce fac ei acolo)
     extract_interviews_from_db(db_path)
 
 if __name__ == '__main__':
