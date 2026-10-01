@@ -146,14 +146,21 @@ class SocialEnvironment(Environment):
             modified_posts = []
             for post in posts['posts']:
                 content = post.get('content', '')
+                description = post.get('content', '')
+                media_path = post.get('image_path')
 
-                if isinstance(content, str) and content.lower().endswith(('.png', '.jpg', '.jpeg')):
+                if isinstance(media_path, str) and media_path.lower().endswith(('.png', '.jpg', '.jpeg')):
                     try:
-                        img = Image.open(content).resize((256, 256))
+                        img = Image.open(media_path).resize((256, 256))
                         image_list.append(img)
-                        post['content'] = f"[Attached Image for post_id: {post.get('post_id')}]"
+                        
+                        if description:
+                            post['content'] = f"{description}\n[Attached Image for post_id: {post.get('post_id')}]"
+                        else:
+                            post['content'] = f"[Attached Image for post_id: {post.get('post_id')}]"
+                            
                     except Exception as e:
-                        print(f"Failed to load image at {content}: {e}")
+                        print(f"Failed to load image at {media_path}: {e}")
                         post["content"] = "[Failed to load attached image]"
 
                 elif isinstance(content, str) and content.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
@@ -229,6 +236,7 @@ class SocialEnvironment(Environment):
                         if os.path.exists(temp_video_path):
                             os.remove(temp_video_path)
 
+                post.pop('image_path', None)
                 modified_posts.append(post) #adaugam tot posts ul oops
 
 
