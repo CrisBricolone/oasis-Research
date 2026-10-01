@@ -31,9 +31,10 @@ async def main():
         model_config_dict={'temperature': 0.1}
     )
 
-    available_actions = [ActionType.REPOST, ActionType.LIKE_POST, ActionType.REPORT_POST, ActionType.DO_NOTHING]
+    available_actions = [ActionType.REPOST, ActionType.LIKE_POST, ActionType.REPORT_POST, 
+                         ActionType.DO_NOTHING, ActionType.CREATE_POST]
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0.csv"),
+        profile_path=str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0_timed.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
@@ -43,15 +44,26 @@ async def main():
     if os.path.exists(db_path):
         os.remove(db_path)
 
+    posts_propagation = str(DATA_DIR / "twitter_dataset" / "fakeedit_6.csv")
+
     env = oasis.make(
         agent_graph = agent_graph,
         platform = oasis.DefaultPlatformType.TIKTOK,
         database_path=db_path
     )
     await env.reset()
+    
     try:
-        #TODO -> pe viitor ar fi bine sa introducem in simulare si cateva dintre postarile anterioare ale userilor
-        #-> also ne trb mai multe topic uri pe baza carora sa actioneze !!!
+        #introducem noise in platforma
+        actions_noise = {
+            agent: LLMAction()
+            for _, agent in env.agent_graph.get_agents()
+        }
+
+        for step in range(0, 10):
+            await env.step(actions_noise)
+
+        # VA trb sa alegem un source post din cele existente iin posts_propagation 
         actions_spread = {}
         actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
             action_type=ActionType.CREATE_POST,
@@ -59,13 +71,6 @@ async def main():
         )
         await env.step(actions_spread)
 
-        #TODO - SOLVED
-        #We need to create our own time engine cu randomised chance of interaction in functie de time step
-        #in paper fiecare step = 3 minute reale -> fiecare 20 de pasi schimbam elementul din vector la care ne uitam
-        #cam doar asta ar fi pe partea de time step
-
-
-        #O sa vrem sa facem mai multe simulari cu timpi random, si cu diferite subiecte
         action_repost_1 = {}
         action_repost_1[env.agent_graph.get_agent(1)] = ManualAction(
             action_type=ActionType.REPOST,
@@ -81,7 +86,7 @@ async def main():
         )
 
         await env.step(action_repost_2)
-        df_users = pd.read_csv("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv")
+        df_users = pd.read_csv(str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0_timed.csv"))
         user_activity_map = {}
         for _, row in df_users.iterrows():
             user_id = str(row['Unnamed: 0'])
