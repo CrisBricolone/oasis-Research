@@ -14,6 +14,12 @@ from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_g
 
 import pandas as pd
 
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parents[2]   # .../oasis-Research
+DATA_DIR = PROJECT_ROOT / "data"
+
 def extract_interviews_from_db(db_path: str, output_dir = './df_opinions'):
     print('Extragem interview-urile din baza de date')
 
@@ -58,8 +64,8 @@ def extract_interviews_from_db(db_path: str, output_dir = './df_opinions'):
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.OPENAI,
-        model_type='Qwen/Qwen3-8B-AWQ',
-        url = 'http://127.0.0.1:8000/v1',
+        model_type='Qwen3.8-27B',
+        url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.3}
     )
@@ -76,12 +82,12 @@ async def main():
                       ActionType.REPOST, ActionType.CREATE_COMMENT, ActionType.LIKE_COMMENT,
                       ActionType.DISLIKE_COMMENT, ActionType.DO_NOTHING]
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=("../../../data/tiktok/group_polar/polarization_dataset_700_conservative.csv"),
+        profile_path=str(DATA_DIR / "tiktok" / "group_polar" / "polarization_dataset_700_conservative.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
-    db_path = "../../../data/tiktok_simulation.db"
+    db_path = str(DATA_DIR / "tiktok_simulation.db")
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)

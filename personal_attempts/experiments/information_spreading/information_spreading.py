@@ -16,6 +16,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 import json
 
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parents[2]   # .../oasis-Research
+DATA_DIR = PROJECT_ROOT / "data"
+
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
@@ -28,14 +34,14 @@ async def main():
     available_actions = [ActionType.REPOST,]
     #generate tiktok agent graph e cam acelasi lucru cu cel de twitter, nu face nimic in plus in mod special
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=("../../../data/tiktok/processed_tiktok_dataset_113_with_vectors.csv"),
+        profile_path=str(DATA_DIR / "tiktok" / "information_spreading" / "processed_tiktok_dataset_700.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
     source_post = 'The Earth is flat as shit, snowflakes!!! 💀💀'
 
-    db_path = "../../../data/tiktok_simulation.db"
+    db_path = str(DATA_DIR / "tiktok_simulation.db")
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
