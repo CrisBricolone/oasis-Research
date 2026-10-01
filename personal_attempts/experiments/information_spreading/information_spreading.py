@@ -56,13 +56,6 @@ async def main():
         database_path=db_path
     )
     await env.reset()
-
-    import sqlite3
-    conn = sqlite3.connect(db_path)
-    #Image path in the db to include the functionlaity for the post photo, only a temporary fix 
-    conn.execute("ALTER TABLE post ADD COLUMN image_path TEXT;")
-    conn.commit()
-    conn.close()
     
     try:
         #introducem noise in platforma

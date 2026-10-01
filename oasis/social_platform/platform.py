@@ -1714,13 +1714,15 @@ class Platform:
         try:
             image_path, image_description = payload
             user_id = agent_id
+            merged_content = f"{image_description}<MEDIA_PATH>{image_path}"
+
             post_insert_query = (
-                "INSERT INTO post (user_id, content, image_path, created_at, num_likes, num_dislikes, num_shares) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO post (user_id, content, created_at, num_likes, num_dislikes, num_shares) "
+                "VALUES (?, ?, ?, ?, ?, ?)"
             )
             self.pl_utils._execute_db_command(
                 post_insert_query, 
-                (user_id, image_description, image_path, current_time, 0, 0, 0),
+                (user_id, merged_content, current_time, 0, 0, 0),
                 commit=True
             )
             

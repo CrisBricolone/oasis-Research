@@ -146,8 +146,12 @@ class SocialEnvironment(Environment):
             modified_posts = []
             for post in posts['posts']:
                 content = post.get('content', '')
-                description = post.get('content', '')
-                media_path = post.get('image_path')
+                raw_content = content
+                if '<MEDIA_PATH>' in raw_content:
+                    description, media_path = raw_content.split('<MEDIA_PATH>')
+                else:
+                    description = raw_content
+                    media_path = None
 
                 if isinstance(media_path, str) and media_path.lower().endswith(('.png', '.jpg', '.jpeg')):
                     try:
@@ -235,6 +239,8 @@ class SocialEnvironment(Environment):
                     finally:
                         if os.path.exists(temp_video_path):
                             os.remove(temp_video_path)
+                else:
+                    post['content'] = description
 
                 post.pop('image_path', None)
                 modified_posts.append(post) #adaugam tot posts ul oops
