@@ -761,7 +761,7 @@ class SocialAction:
                                          ActionType.LISTEN_FROM_GROUP.value)
 
     async def post_photo(self, image_path: str, image_description: str):
-        return await self.perform_action(image_path, image_description, ActionType.POST_PHOTO.value)
+        return await self.perform_action((image_path, image_description), ActionType.POST_PHOTO.value)
 
     async def post_video(self, video_path: str):
         return await self.perform_action(video_path, ActionType.POST_VIDEO.value)

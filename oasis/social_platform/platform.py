@@ -1704,7 +1704,7 @@ class Platform:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def post_photo(self, agent_id:int, image_path:str, image_description:str):
+    async def post_photo(self, agent_id:int, payload: tuple):
         if self.recsys_type == RecsysType.REDDIT:
             current_time = self.sandbox_clock.time_transfer(
                 datetime.now(), self.start_time)
@@ -1712,6 +1712,7 @@ class Platform:
             current_time = self.sandbox_clock.get_time_step()
 
         try:
+            image_path, image_description = payload
             user_id = agent_id
             post_insert_query = (
                 "INSERT INTO post (user_id, content, image_path, created_at, num_likes, num_dislikes, num_shares) "

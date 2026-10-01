@@ -56,6 +56,13 @@ async def main():
         database_path=db_path
     )
     await env.reset()
+
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    #Image path in the db to include the functionlaity for the post photo, only a temporary fix 
+    conn.execute("ALTER TABLE post ADD COLUMN image_path TEXT;")
+    conn.commit()
+    conn.close()
     
     try:
         #introducem noise in platforma
@@ -71,7 +78,7 @@ async def main():
         actions_spread = {}
         actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
             action_type=ActionType.POST_PHOTO,
-            action_args={'content': source_post, 'image_path': photo_path}
+            action_args={'image_description': source_post, 'image_path': photo_path}
         )
         await env.step(actions_spread)
 
