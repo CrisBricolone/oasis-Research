@@ -30,22 +30,25 @@ tz_offsets = {
 vectors_list = []
 
 for idx, row in df.iterrows():
-    bio = str(row['description']).lower()
-    followers = row['followers_count']
+    bio = str(row.get('description', '')).lower()
+    user_char = str(row.get('user_char', '')).lower()
+    combined_text = bio + " " + user_char
     
+    followers = row.get('followers_count', 0)
     profile_type = 'default'
-    if followers > 10000:
+
+    if followers > 10000 or any(word in combined_text for word in ['influencer', 'creator', 'public figure', 'streamer', 'youtuber']):
         profile_type = 'influencer'
-    elif any(word in bio for word in ['student', 'school', 'uni', 'college', '15y', '16y', '17y', '18y', '19y', '20y', '21y', 'highschool', 'grad']):
+    elif any(word in combined_text for word in ['student', 'school', 'uni', 'college', '15y', '16y', '17y', '18y', '19y', '20y', '21y', 'highschool', 'grad']):
         profile_type = 'student'
-    elif any(word in bio for word in ['work', 'job', 'manager', 'ceo', 'founder', 'engineer', 'nurse', 'teacher', 'mom', 'dad']):
+    elif any(word in combined_text for word in ['work', 'job', 'manager', 'ceo', 'founder', 'engineer', 'nurse', 'teacher', 'mom', 'dad', 'lecturer']):
         profile_type = 'job'
         
     local_vector = randomize(base_profiles[profile_type], idx)
 
     offset = 0
     for key, val in tz_offsets.items():
-        if key in bio:
+        if key in combined_text:
             offset = val
             break
 
