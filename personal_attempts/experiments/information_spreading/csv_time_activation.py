@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import numpy as np
 
-df = pd.read_csv("../../../data/tiktok/processed_tiktok_dataset_700.csv")
+df = pd.read_csv("../../../data/twitter_dataset/anonymous_topic_200_1h/False_Business_0.csv")
 
 base_profiles = {
     'student': [0.05, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1, 0.3, 0.2, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.9, 0.8, 0.8, 0.7, 0.5, 0.2, 0.1],
@@ -56,5 +56,5 @@ for idx, row in df.iterrows():
     vectors_list.append(json.dumps(utc_vector))
 
 df['activity_vector'] = vectors_list
-df.to_csv("../../../data/tiktok/processed_tiktok_dataset_700_with_vectors.csv", index=False)
+df.to_csv("../../../data/twitter_dataset/anonymous_topic_200_1h/False_Business_0_timed.csv", index=False)
 

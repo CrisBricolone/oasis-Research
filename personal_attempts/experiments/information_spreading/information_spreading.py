@@ -31,17 +31,14 @@ async def main():
         model_config_dict={'temperature': 0.1}
     )
 
-    available_actions = [ActionType.REPOST,]
-    #generate tiktok agent graph e cam acelasi lucru cu cel de twitter, nu face nimic in plus in mod special
+    available_actions = [ActionType.REPOST, ActionType.LIKE_POST, ActionType.REPORT_POST, ActionType.DO_NOTHING]
     agent_graph = await generate_twitter_agent_graph(
-        profile_path=str(DATA_DIR / "tiktok" / "information_spreading" / "processed_tiktok_dataset_700.csv"),
+        profile_path=str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
-    source_post = 'The Earth is flat as shit, snowflakes!!! 💀💀'
-
-    db_path = str(DATA_DIR / "tiktok_simulation.db")
+    db_path = str(DATA_DIR / "twitter_simulation.db")
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
@@ -159,6 +156,14 @@ async def main():
         axes[2].grid(True, linestyle='--', alpha=0.7)
 
         plt.tight_layout()
+
+        output_dir = SCRIPT_DIR / "graphs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = output_dir / f"propagation_stats_{timestamp}.png"
+        plt.savefig(str(save_path), dpi=300, bbox_inches='tight')
+        print(f"Graphs successfully saved to: {save_path}")
+
         plt.show()
 
         pg.viz = True
