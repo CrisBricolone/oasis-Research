@@ -25,8 +25,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 async def main():
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen3.8-27B',
-        url = 'http://127.0.0.1:8609/v1',
+        model_type='Qwen/Qwen3-8B-AWQ',
+        url = 'http://127.0.0.1:8000/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.1}
     )
@@ -44,7 +44,11 @@ async def main():
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    posts_propagation = str(DATA_DIR / "twitter_dataset" / "fakeedit_6.csv")
+    posts_propagation = str(DATA_DIR / "twitter_dataset" / "multimodal" / "fakeedit_6.csv")
+    photo_path = str(DATA_DIR / "twitter_dataset" / "multimodal" / "photos" / "1.png")
+
+    df_posts = pd.read_csv(posts_propagation)
+    source_post = str(df_posts.iloc[0].get('title', df_posts.iloc[0].get('clean_title', ''))) 
 
     env = oasis.make(
         agent_graph = agent_graph,
@@ -55,37 +59,22 @@ async def main():
     
     try:
         #introducem noise in platforma
-        actions_noise = {
-            agent: LLMAction()
-            for _, agent in env.agent_graph.get_agents()
-        }
+        # actions_noise = {
+        #     agent: LLMAction()
+        #     for _, agent in env.agent_graph.get_agents()
+        # }
 
-        for step in range(0, 10):
-            await env.step(actions_noise)
+        # for step in range(0, 10):
+        #     await env.step(actions_noise)
 
         # VA trb sa alegem un source post din cele existente iin posts_propagation 
         actions_spread = {}
         actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
-            action_type=ActionType.CREATE_POST,
-            action_args={'content': source_post}
+            action_type=ActionType.POST_PHOTO,
+            action_args={'content': source_post, 'image_path': photo_path}
         )
         await env.step(actions_spread)
 
-        action_repost_1 = {}
-        action_repost_1[env.agent_graph.get_agent(1)] = ManualAction(
-            action_type=ActionType.REPOST,
-            action_args={'post_id': 1}
-        )
-
-        await env.step(action_repost_1)
-
-        action_repost_2 = {}
-        action_repost_2[env.agent_graph.get_agent(2)] = ManualAction(
-            action_type=ActionType.REPOST,
-            action_args={'post_id': 2}
-        )
-
-        await env.step(action_repost_2)
         df_users = pd.read_csv(str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0_timed.csv"))
         user_activity_map = {}
         for _, row in df_users.iterrows():
@@ -111,7 +100,7 @@ async def main():
             print(f"\n--- Step {step} | Virtual Time: {current_time.strftime('%H:%M')} ---")
             active_actions = {}
 
-            for agent_id, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39]):
+            for agent_id, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29]):
                 #TODO -> implementare cu probabilitate pe bune - SOLVED 
                 agent_vector = user_activity_map.get(str(agent_id), [0.15] * 24)
                 base_prob = float(agent_vector[current_hour])
