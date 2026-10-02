@@ -36,7 +36,10 @@ async def main():
         model_type='Qwen3.8-27B',
         url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
-        model_config_dict={'temperature': 0.1}
+        model_config_dict=
+            {
+            'temperature': 0.1,
+            'timeout': 600.0}
     )
 
     available_actions = [ActionType.REPOST, ActionType.LIKE_POST, ActionType.REPORT_POST, 
