@@ -1,4 +1,6 @@
 import sys
+import matplotlib
+matplotlib.use('Agg') 
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -17,8 +19,8 @@ def main():
     posts_propagation = str(DATA_DIR / "twitter_dataset" / "multimodal" / "fakeedit_6.csv")
     df_posts = pd.read_csv(posts_propagation)
 
-    fig, axes = plt.subplots(nrows = len(post_index), ncols = 3, figsize = (15, 14))
-    colors = ['blue', 'red', 'green', 'yellow']
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 14))
+    colors = ['blue', 'red', 'green', 'purple']
 
     for i, post_idx in enumerate(post_index):
         if post_idx == 1:
@@ -45,40 +47,49 @@ def main():
             t_breadth, y_breadth = pg.plot_max_breadth_time()
 
             color = colors[i]
+            label_name = f"Post {i + 1}"
 
-            # Grafic 1: Scale (Coloana 0)
-            axes[i, 0].plot(t_scale, y_scale, color=color, linewidth=2)
-            axes[i, 0].set_title(f"Post {post_idx}: Scale")
-            axes[i, 0].set_xlabel("Steps")
-            axes[i, 0].set_ylabel("Scale (Users)")
-            axes[i, 0].grid(True, linestyle='--', alpha=0.7)
+            axes[0].plot(t_scale, y_scale, color=color, linewidth=2, label=label_name)
+            axes[1].plot(t_depth, y_depth, color=color, linewidth=2, label=label_name)
+            axes[2].plot(t_breadth, y_breadth, color=color, linewidth=2, label=label_name)
 
-            # Grafic 2: Depth (Coloana 1)
-            axes[i, 1].plot(t_depth, y_depth, color=color, linewidth=2)
-            axes[i, 1].set_title(f"Post {post_idx}: Depth")
-            axes[i, 1].set_xlabel("Steps")
-            axes[i, 1].set_ylabel("Depth")
-            axes[i, 1].grid(True, linestyle='--', alpha=0.7)
-
-            # Grafic 3: Max Breadth (Coloana 2)
-            axes[i, 2].plot(t_breadth, y_breadth, color=color, linewidth=2)
-            axes[i, 2].set_title(f"Post {post_idx}: Max Breadth")
-            axes[i, 2].set_xlabel("Steps")
-            axes[i, 2].set_ylabel("Max Breadth")
-            axes[i, 2].grid(True, linestyle='--', alpha=0.7)
+            plt.figure(figsize=(30, 20)) 
+            pg.viz = True
+            pg.viz_graph(time_threshold=999) 
+            viz_fig = plt.gcf() 
+            
+            output_dir = SCRIPT_DIR / "graphs"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            viz_save_path = output_dir / f"propagation_tree_post_{post_idx}_{timestamp}.png"
+            viz_fig.savefig(str(viz_save_path), dpi=400, bbox_inches='tight')
+            print(f"Arborele detaliat pentru postarea {post_idx} salvat la: {viz_save_path}")
+            
+            plt.close(viz_fig) 
+  
 
         except Exception as e:
             print(f"ERROR {post_idx}: {e}")
 
+    # Finalizam si salvam graficul combinat cu cele 3 metrici
+    titles = ["Propagation Scale", "Propagation Depth", "Propagation Max Breadth"]
+    ylabels = ["Scale (Users)", "Depth", "Max Breadth"]
+
+    for ax, title, ylabel in zip(axes, titles, ylabels):
+        ax.set_title(title)
+        ax.set_xlabel("Steps")
+        ax.set_ylabel(ylabel)
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.legend() 
 
     plt.tight_layout()
-    output_dir = SCRIPT_DIR / "graphs"
-    output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = output_dir / f"grid_propagation_stats_{timestamp}.png"
+    save_path = output_dir / f"combined_metrics_stats_{timestamp}.png"
     
-    plt.savefig(str(save_path), dpi=300, bbox_inches='tight')
-    print(f"\nGraficul tip grila a fost salvat cu succes la: {save_path}")
+    # fig este figura definita la inceput de tot
+    fig.savefig(str(save_path), dpi=300, bbox_inches='tight')
+    print(f"\nGraficul combinat pe metrici a fost salvat cu succes la: {save_path}")
 
 if __name__ == '__main__':
     main()
