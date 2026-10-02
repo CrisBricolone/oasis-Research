@@ -14,13 +14,13 @@ sys.path.append(str(PROJECT_ROOT / "visualization" / "twitter_simulation" / "ali
 from graph import prop_graph
 
 def main():
-    post_index = [1, 2, 4, 5]
+    post_index = [1, 2, 4, 5, 6]
 
     posts_propagation = str(DATA_DIR / "twitter_dataset" / "multimodal" / "fakeedit_6.csv")
     df_posts = pd.read_csv(posts_propagation)
 
     fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 14))
-    colors = ['blue', 'red', 'green', 'purple']
+    colors = ['blue', 'red', 'green', 'purple', 'orange']
 
     for i, post_idx in enumerate(post_index):
         if post_idx == 1:
