@@ -88,6 +88,9 @@ class prop_graph:
             if orig_user == repost_user:
                 continue
 
+            if orig_user not in self.G:      
+                continue
+
             # Enforce single incoming edge: this node already has a parent, skip
             if repost_user in self.G and self.G.in_degree(repost_user) > 0:
                 continue

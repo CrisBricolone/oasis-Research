@@ -9,46 +9,57 @@ import oasis
 from oasis import (ActionType, LLMAction, ManualAction, generate_twitter_agent_graph)
 
 import sys
-sys.path.append('../../../visualization/twitter_simulation/align_with_real_world/code')
-from graph import prop_graph
 import random
 from datetime import datetime, timedelta
 import pandas as pd
 import json
 
 from pathlib import Path
+import argparse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parents[2]   # .../oasis-Research
 DATA_DIR = PROJECT_ROOT / "data"
 
+sys.path.append(str(PROJECT_ROOT / "visualization" / "twitter_simulation" / "align_with_real_world" / "code"))
+from graph import prop_graph
+
 async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--post_idx", type=int, required=True, help="Indexul pozei si al postarii")
+    args = parser.parse_args()
+    post_idx = args.post_idx
+    print(f"=== INITIALIZARE SIMULARE PENTRU POZA {post_idx} ===")
+
     vllm_model_1 = ModelFactory.create(
         model_platform=ModelPlatformType.VLLM,
-        model_type='Qwen/Qwen3-8B-AWQ',
-        url = 'http://127.0.0.1:8000/v1',
+        model_type='Qwen3.8-27B',
+        url = 'http://127.0.0.1:8609/v1',
         api_key='vllm-fun',
         model_config_dict={'temperature': 0.1}
     )
 
     available_actions = [ActionType.REPOST, ActionType.LIKE_POST, ActionType.REPORT_POST, 
-                         ActionType.DO_NOTHING, ActionType.CREATE_POST]
+                         ActionType.DO_NOTHING]
     agent_graph = await generate_twitter_agent_graph(
         profile_path=str(DATA_DIR / "twitter_dataset" / "anonymous_topic_200_1h" / "False_Business_0_timed.csv"),
         model = vllm_model_1,
         available_actions=available_actions
     )
 
-    db_path = str(DATA_DIR / "twitter_simulation.db")
+    db_path = str(DATA_DIR / f"twitter_simulation_post_{post_idx}.db")
     os.environ["OASIS_DB_PATH"] = os.path.abspath(db_path)
     if os.path.exists(db_path):
         os.remove(db_path)
 
     posts_propagation = str(DATA_DIR / "twitter_dataset" / "multimodal" / "fakeedit_6.csv")
-    photo_path = str(DATA_DIR / "twitter_dataset" / "multimodal" / "photos" / "1.png")
+    #alegem imaginea corespunzatoare postarii
+    photo_path = str(DATA_DIR / "twitter_dataset" / "multimodal" / "photos" / f"{post_idx}.png")
 
+    #aici alegem descrierea postarii pentru care vrem sa urmam propagarea
     df_posts = pd.read_csv(posts_propagation)
-    source_post = str(df_posts.iloc[0].get('title', df_posts.iloc[0].get('clean_title', ''))) 
+    row_idx = post_idx - 1 
+    source_post = str(df_posts.iloc[row_idx].get('title', df_posts.iloc[row_idx].get('clean_title', '')))
 
     env = oasis.make(
         agent_graph = agent_graph,
@@ -59,15 +70,25 @@ async def main():
     
     try:
         #introducem noise in platforma
-        # actions_noise = {
-        #     agent: LLMAction()
-        #     for _, agent in env.agent_graph.get_agents()
-        # }
+        noise_csv_path = str(DATA_DIR / "twitter_dataset" / "all_topics.csv")
+        df_background = pd.read_csv(noise_csv_path)
+        
+        actions_noise = {}
+        all_agents = list(env.agent_graph.get_agents())
+        num_background_posts = min(100, len(all_agents), len(df_background))
 
-        # for step in range(0, 10):
-        #     await env.step(actions_noise)
+        for i in range(num_background_posts):
+                agent_id, agent = all_agents[i]
+                post_text = str(df_background.iloc[i]['source_tweet'])
+                
+                actions_noise[agent] = ManualAction(
+                    action_type=ActionType.CREATE_POST,
+                    action_args={'content': post_text}
+                )
 
-        # VA trb sa alegem un source post din cele existente iin posts_propagation 
+        print(f"\n--- Injecting {num_background_posts} Background Posts ---")
+        await env.step(actions_noise)
+        
         actions_spread = {}
         actions_spread[env.agent_graph.get_agent(0)] = ManualAction(
             action_type=ActionType.POST_PHOTO,
@@ -90,18 +111,17 @@ async def main():
                 
             user_activity_map[user_id] = vector
 
-        virtual_time = datetime(2026, 9, 24, 8, 0)
+        virtual_time = datetime(2026, 9, 24, 12, 0)
         minutes_per_step = 3
 
-        for step in range(0, 3):
+        for step in range(30):
             current_time = virtual_time + timedelta(minutes=step * minutes_per_step)
             current_hour = current_time.hour
 
             print(f"\n--- Step {step} | Virtual Time: {current_time.strftime('%H:%M')} ---")
             active_actions = {}
 
-            for agent_id, agent in env.agent_graph.get_agents([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29]):
-                #TODO -> implementare cu probabilitate pe bune - SOLVED 
+            for agent_id, agent in env.agent_graph.get_agents():
                 agent_vector = user_activity_map.get(str(agent_id), [0.15] * 24)
                 base_prob = float(agent_vector[current_hour])
                 prob = base_prob
@@ -154,14 +174,20 @@ async def main():
         output_dir = SCRIPT_DIR / "graphs"
         output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = output_dir / f"propagation_stats_{timestamp}.png"
+        save_path = output_dir / f"propagation_stats_post_{post_idx}_{timestamp}.png"
         plt.savefig(str(save_path), dpi=300, bbox_inches='tight')
         print(f"Graphs successfully saved to: {save_path}")
 
         plt.show()
 
+        plt.close('all')
         pg.viz = True
         pg.viz_graph(time_threshold=999)
+
+        viz_fig = plt.gcf()
+        viz_save_path = output_dir / f"propagation_graph_post_{post_idx}_{timestamp}.png"
+        viz_fig.savefig(str(viz_save_path), dpi=300, bbox_inches='tight')
+        print(f"Propagation graph saved to: {viz_save_path}")
 
     except Exception as e:
         print(f'Could not show graph: {e}')
