@@ -47,6 +47,9 @@ class ActionType(Enum):
     SEND_TO_GROUP = "send_to_group"
     CREATE_GROUP = "create_group"
     LISTEN_FROM_GROUP = "listen_from_group"
+    POST_PHOTO = "post_photo"
+    POST_VIDEO = "post_video"
+    POST_SOUND = "post_sound"
 
     @classmethod
     def get_default_twitter_actions(cls):
@@ -77,14 +80,37 @@ class ActionType(Enum):
             cls.MUTE,
         ]
 
+    #basic tiktok actions
+    @classmethod
+    def get_default_tiktok_actions(cls):
+        return [
+            cls.CREATE_POST,
+            cls.LIKE_POST,
+            cls.CREATE_COMMENT,
+            cls.LIKE_COMMENT,
+            cls.SEARCH_POSTS,
+            cls.SEARCH_USER,
+            cls.REFRESH,
+            cls.DO_NOTHING,
+            cls.FOLLOW,
+            cls.REPOST,
+            cls.POST_PHOTO,
+            cls.POST_VIDEO,
+            cls.POST_SOUND
+        ]
+
 
 class RecsysType(Enum):
     TWITTER = "twitter"
     TWHIN = "twhin-bert"
     REDDIT = "reddit"
     RANDOM = "random"
+    TIKTOK = "tiktok"
+    CHRONO = "chronological"
+    GORSE = "gorse"
 
 
 class DefaultPlatformType(Enum):
     TWITTER = "twitter"
     REDDIT = "reddit"
+    TIKTOK = "tiktok"

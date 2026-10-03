@@ -78,44 +78,48 @@ class PlatformUtils:
         for row in posts_results:
             (post_id, user_id, original_post_id, content, quote_content,
              created_at, num_likes, num_dislikes, num_shares) = row
-            post_type_result = self._get_post_type(post_id)
-            if post_type_result is None:
-                continue
-            original_user_id_query = (
-                "SELECT user_id FROM post WHERE post_id = ?")
-            if post_type_result["type"] == "repost":
-                self.db_cursor.execute(original_user_id_query,
-                                       (original_post_id, ))
-                original_user_id = self.db_cursor.fetchone()[0]
-                original_post_id = post_id
-                post_id = post_type_result["root_post_id"]
-                self.db_cursor.execute(
-                    "SELECT content, quote_content, created_at, num_likes, "
-                    "num_dislikes, num_shares, num_reports FROM post "
-                    "WHERE post_id = ?", (post_id, ))
-                original_post_result = self.db_cursor.fetchone()
-                (content, quote_content, created_at, num_likes, num_dislikes,
-                 num_shares, num_reports) = original_post_result
+             
+            if original_post_id is not None and quote_content is None:
+                p_type = "repost"
+            elif original_post_id is not None and quote_content is not None:
+                p_type = "quote"
+            else:
+                p_type = "common"
+
+            original_user_id_query = ("SELECT user_id FROM post WHERE post_id = ?")
+
+            if p_type == "repost":
+                self.db_cursor.execute(original_user_id_query, (original_post_id, ))
+                original_user_id_row = self.db_cursor.fetchone()
+                original_user_id = original_user_id_row[0] if original_user_id_row else "Unknown"
+                
+                #text is already prepared !!
                 post_content = (
                     f"User {user_id} reposted a post from User "
                     f"{original_user_id}. Repost content: {content}. ")
+                
+                original_post_id = post_id
 
-            elif post_type_result["type"] == "quote":
-                self.db_cursor.execute(original_user_id_query,
-                                       (original_post_id, ))
-                original_user_id = self.db_cursor.fetchone()[0]
+            elif p_type == "quote":
+                self.db_cursor.execute(original_user_id_query, (original_post_id, ))
+                original_user_id_row = self.db_cursor.fetchone()
+                original_user_id = original_user_id_row[0] if original_user_id_row else "Unknown"
+                
                 post_content = (
                     f"User {user_id} quoted a post from User "
                     f"{original_user_id}. Quote content: {quote_content}. "
                     f"Original Content: {content}")
 
-            elif post_type_result["type"] == "common":
+                original_post_id = post_id
+
+            elif p_type == "common":
                 post_content = content
-                # Get num_reports for common posts
-                self.db_cursor.execute(
-                    "SELECT num_reports FROM post WHERE post_id = ?",
-                    (post_id, ))
-                num_reports = self.db_cursor.fetchone()[0]
+                
+            # Fetch num_reports for ALL types safely
+            self.db_cursor.execute(
+                "SELECT num_reports FROM post WHERE post_id = ?", (post_id, ))
+            num_reports_row = self.db_cursor.fetchone()
+            num_reports = num_reports_row[0] if num_reports_row else 0
 
             # For each post, query its corresponding comments
             self.db_cursor.execute(
@@ -127,30 +131,25 @@ class PlatformUtils:
 
             # Convert each comment's result into dictionary format
             comments = [{
-                "comment_id":
-                comment_id,
-                "post_id":
-                post_id,
-                "user_id":
-                user_id,
-                "content":
-                content,
-                "created_at":
-                created_at,
+                "comment_id": comment_id_val,
+                "post_id": post_id_val,
+                "user_id": user_id_val,
+                "content": comment_content,
+                "created_at": created_at_val,
                 **({
-                    "score": num_likes - num_dislikes
+                    "score": num_likes_val - num_dislikes_val
                 } if self.show_score else {
-                       "num_likes": num_likes,
-                       "num_dislikes": num_dislikes
+                       "num_likes": num_likes_val,
+                       "num_dislikes": num_dislikes_val
                    }),
             } for (
-                comment_id,
-                post_id,
-                user_id,
-                content,
-                created_at,
-                num_likes,
-                num_dislikes,
+                comment_id_val,
+                post_id_val,
+                user_id_val,
+                comment_content,
+                created_at_val,
+                num_likes_val,
+                num_dislikes_val,
             ) in comments_results]
 
             # Add warning message if the post has been reported
@@ -161,27 +160,19 @@ class PlatformUtils:
 
             # Add post information and corresponding comments to the posts list
             posts.append({
-                "post_id":
-                post_id
-                if post_type_result["type"] != "repost" else original_post_id,
-                "user_id":
-                user_id,
-                "content":
-                post_content,
-                "created_at":
-                created_at,
+                "post_id": post_id if p_type != "repost" else original_post_id,
+                "user_id": user_id,
+                "content": post_content,
+                "created_at": created_at,
                 **({
                     "score": num_likes - num_dislikes
                 } if self.show_score else {
                        "num_likes": num_likes,
                        "num_dislikes": num_dislikes
                    }),
-                "num_shares":
-                num_shares,
-                "num_reports":
-                num_reports,
-                "comments":
-                comments,
+                "num_shares": num_shares,
+                "num_reports": num_reports,
+                "comments": comments,
             })
         return posts
 

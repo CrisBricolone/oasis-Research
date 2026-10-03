@@ -106,7 +106,8 @@ def get_recsys_model(recsys_type: str = None):
         models = (twhin_tokenizer, twhin_model)
         return models
     elif (recsys_type == RecsysType.REDDIT.value
-          or recsys_type == RecsysType.RANDOM.value):
+          or recsys_type == RecsysType.RANDOM.value
+          or recsys_type == RecsysType.CHRONO.value):
         return None
     else:
         raise ValueError(f"Unknown recsys type: {recsys_type}")
@@ -131,6 +132,64 @@ def reset_globals():
     t_items = {}
     u_items = {}
     date_score = []
+
+from gorse import AsyncGorse
+import asyncio
+
+GORSE_CONCURRENCY_LIMIT = 50 
+sem = asyncio.Semaphore(GORSE_CONCURRENCY_LIMIT)
+
+async def rec_sys_gorse(post_table: List[Dict[str, Any]],
+                  user_table: List[Dict[str, Any]],
+                  gorse_client: AsyncGorse,
+                  max_rec_post_len: int = 20
+                  ) -> List[List[int]]:
+
+    new_rec_matrix = []
+
+    sorted_posts = sorted(post_table, key=lambda x: x['created_at'], reverse = True)
+    fallback_posts = [post['post_id'] for post in sorted_posts][:max_rec_post_len]
+
+    if not gorse_client:
+        return [fallback_posts for _ in user_table]
+
+    async def fetch_for_user(user_id):
+        rec_list = []
+
+        async with sem:
+            try:
+                gorse_recs = await gorse_client.get_recommend(str(user_id), n = max_rec_post_len)
+                if gorse_recs:
+                    rec_list =  [int(item.id) for item in gorse_recs]
+            except Exception as e:
+                print(f'Gorse Recsys Error: {e}')
+
+        for fp in fallback_posts:
+                if fp not in rec_list:
+                    rec_list.append(fp)
+
+        return rec_list[:max_rec_post_len]
+    
+    tasks = [fetch_for_user(user['user_id']) for user in user_table]
+    new_rec_matrix = await asyncio.gather(*tasks)
+
+    return list(new_rec_matrix)
+
+
+def rec_sys_custom_chronological(post_table: List[Dict[str, Any]],
+                                 user_table: List[Dict[str, Any]],
+                                 max_rec_post_len: int = 20
+                                 ) -> List[List]:
+
+    """
+        Intoarce postarile in ordine cronologica
+    """
+    
+    sorted_posts = sorted(post_table, key=lambda x: x['created_at'], reverse = True)
+    sorted_posts_id = [post['post_id'] for post in sorted_posts][:max_rec_post_len]
+    new_rec_matrix = [sorted_posts_id for _ in user_table]
+
+    return new_rec_matrix
 
 
 def rec_sys_random(post_table: List[Dict[str, Any]], rec_matrix: List[List],
